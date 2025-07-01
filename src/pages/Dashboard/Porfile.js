@@ -307,7 +307,7 @@ const ProfilePage = () => {
                   >
                     Change Photo
                   </button>
-                  {profilePictureFile && (
+                  {/* {profilePictureFile && (
                     <button
                       type="button"
                       onClick={handleUpdateProfilePicture}
@@ -316,7 +316,7 @@ const ProfilePage = () => {
                     >
                       {isLoading ? 'Uploading...' : 'Upload New Photo'}
                     </button>
-                  )}
+                  )} */}
                 </>
               )}
                {!isEditing && userData.profilePicture?.url && (

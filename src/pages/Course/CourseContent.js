@@ -1347,7 +1347,7 @@ export default function CourseContent() {
   const audioReady = audioRef.current && duration > 0 && !isNaN(duration) && hasUserPressedPlay;
   const getHeaderTitle = () => {
     if (!selectedLesson || !chapters.length) return "Course Details";
-    if (selectedLesson.type === 'lesson') return currentLesson?.lessonname || "Lesson";
+    // if (selectedLesson.type === 'lesson') return currentLesson?.lessonname || "Lesson";
    // if (selectedLesson.type === 'exam') return currentExam?.examinationName || "Exam";
 
   };
