@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate  } from "react-router-dom";
 import styled, { css } from "styled-components";
 
 const PaymentPages = () => {
@@ -9,6 +9,7 @@ const PaymentPages = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
+  const navigate = useNavigate();
   const limit = 5;
 
   useEffect(() => {
@@ -61,6 +62,16 @@ const PaymentPages = () => {
   return (
     <Container>
       <Header>
+         <HeaderTop>
+          <BackButton onClick={() => navigate(-1)}>
+           <BackCircle>
+              <BackArrow viewBox="0 0 24 24">
+                <path d="M15 18L9 12L15 6" />
+              </BackArrow>
+            </BackCircle>
+           <BackText>Back</BackText>
+          </BackButton>
+        </HeaderTop>
         <h1>Payment History</h1>
         <p>View all your transaction details and payment history</p>
       </Header>
@@ -225,6 +236,56 @@ const Header = styled.div`
   }
 `;
 
+const HeaderTop = styled.div`
+  width: 100%;
+  margin-bottom: 1rem;
+`;
+
+const BackButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: #4f46e5;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #4338ca;
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+`;
+
+const BackCircle = styled.div`
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  transition: all 0.2s ease;
+`;
+
+const BackArrow = styled.svg`
+  width: 20px;
+  height: 20px;
+  color: #4f46e5;
+  transition: all 0.2s ease;
+`;
+
+const BackText = styled.span`
+  font-weight: 500;
+  color: #64748b;
+  transition: all 0.2s ease;
+`;
 const SummaryGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(1, 1fr);
