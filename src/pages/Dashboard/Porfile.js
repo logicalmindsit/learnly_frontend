@@ -1,16 +1,15 @@
+
+
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import { FiArrowLeft } from 'react-icons/fi'; // Icon is already imported
+import axios from 'axios'; // Using axios for easier API calls
 
-// API Base URL
-const API_BASE_URL = 'https://learnly-backend-05ix.onrender.com';
+// API Base URL - configure this to your actual backend URL
+const API_BASE_URL = 'https://learnly-backend-05ix.onrender.com'; // Example: Replace with your actual API base URL
 
-// Default placeholder image
+// Default placeholder image (e.g., a generic avatar)
 const DEFAULT_AVATAR = 'https://via.placeholder.com/150/CCCCCC/FFFFFF?Text=No+Image';
 
-
 const ProfilePage = () => {
-  // All of your original state and refs are here, unchanged
   const [userData, setUserData] = useState(null);
   const [formData, setFormData] = useState({});
   const [profilePictureFile, setProfilePictureFile] = useState(null);
@@ -20,9 +19,9 @@ const ProfilePage = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+
   const fileInputRef = useRef(null);
 
-  // All of your original functions are here, unchanged
   useEffect(() => {
     const handleResize = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -31,7 +30,7 @@ const ProfilePage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const getToken = () => localStorage.getItem('token');
+  const getToken = () => localStorage.getItem('token'); // Adjust 'authToken' if your key is different
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -93,13 +92,29 @@ const ProfilePage = () => {
     }
   };
 
+  // const handleFileChange = (e) => {
+  //   const file = e.target.files[0];
+  //   if (file) {
+  //     setProfilePictureFile(file);
+  //     setProfilePicturePreview(URL.createObjectURL(file));
+  //   }
+  // };
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setProfilePictureFile(file);
-      setProfilePicturePreview(URL.createObjectURL(file));
+  const file = e.target.files[0];
+  if (file) {
+    if (!file.type.startsWith('image/')) {
+      setError("Please select an image file.");
+      return;
     }
-  };
+    if (file.size > 5 * 1024 * 1024) { // 5MB
+      setError("File size exceeds 5MB limit.");
+      return;
+    }
+    setProfilePictureFile(file);
+    setProfilePicturePreview(URL.createObjectURL(file));
+    setError(''); // Clear any previous errors
+  }
+};
 
   const handleUpdateProfileDetails = async (e) => {
     e.preventDefault();
@@ -113,6 +128,7 @@ const ProfilePage = () => {
       return;
     }
 
+    // Filter out empty address fields to avoid sending empty strings if not intended
     const payload = { ...formData };
     if (payload.address) {
         payload.address = Object.fromEntries(
@@ -122,6 +138,7 @@ const ProfilePage = () => {
             delete payload.address;
         }
     }
+     // Ensure dateofBirth is sent as null if empty, or a valid date string
     if (payload.dateofBirth === '') {
         payload.dateofBirth = null;
     }
@@ -132,7 +149,7 @@ const ProfilePage = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUserData(response.data.user);
-       setFormData({
+       setFormData({ // Re-initialize formData with potentially validated/formatted data from backend
           username: response.data.user.username || '',
           email: response.data.user.email || '',
           mobile: response.data.user.mobile || '',
@@ -159,95 +176,276 @@ const ProfilePage = () => {
       setIsLoading(false);
     }
   };
+const handleUpdateProfilePicture = async () => {
+  if (!profilePictureFile) {
+    setError("Please select a file to upload.");
+    return;
+  }
+  setIsLoading(true);
+  setError('');
+  setSuccessMessage('');
+  const token = getToken();
+  if (!token) {
+    setError("Authentication token not found.");
+    setIsLoading(false);
+    return;
+  }
 
-  const handleUpdateProfilePicture = async () => {
-    if (!profilePictureFile) {
-      setError("Please select a file to upload.");
-      return;
-    }
-    setIsLoading(true);
-    setError('');
-    setSuccessMessage('');
-    const token = getToken();
-    if (!token) {
-      setError("Authentication token not found.");
-      setIsLoading(false);
-      return;
-    }
+  const pictureFormData = new FormData();
+  pictureFormData.append('profilePicture', profilePictureFile);
 
-    const pictureFormData = new FormData();
-    pictureFormData.append('profilePicture', profilePictureFile);
+  try {
+    const response = await axios.put(`${API_BASE_URL}/profile-picture`, pictureFormData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    setUserData(prev => ({ ...prev, profilePicture: response.data.profilePicture }));
+    setProfilePicturePreview(response.data.profilePicture.url);
+    setProfilePictureFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = ''; // Reset file input
+    setSuccessMessage("Profile picture updated successfully!");
+  } catch (err) {
+    setError(err.response?.data?.message || "Failed to update profile picture.");
+    console.error("Update picture error:", err);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-    try {
-      const response = await axios.put(`${API_BASE_URL}/profile-picture`, pictureFormData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      setUserData(prev => ({ ...prev, profilePicture: response.data.profilePicture }));
-      setProfilePicturePreview(response.data.profilePicture.url);
-      setProfilePictureFile(null);
-      setSuccessMessage("Profile picture updated successfully!");
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to update profile picture.");
-      console.error("Update picture error:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Your original styles object, unchanged
+  // Inline Styles
   const styles = {
-    pageContainer: { fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#f0f2f5', minHeight: '100vh', padding: isMobileView ? '20px' : '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxSizing: 'border-box' },
-    profileCard: { backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)', width: '100%', maxWidth: '900px', overflow: 'hidden' },
-    cardHeader: { backgroundColor: '#007bff', color: 'white', padding: '20px 30px', fontSize: '24px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-    editButton: { backgroundColor: '#ffffff', color: '#007bff', border: '1px solid #007bff', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', transition: 'all 0.3s ease' },
-    cardBody: { padding: '30px', display: 'flex', flexDirection: isMobileView ? 'column' : 'row', gap: '30px' },
-    pictureSection: { flex: isMobileView ? '1' : '0 0 250px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' },
-    profileImage: { width: '180px', height: '180px', borderRadius: '50%', objectFit: 'cover', border: '4px solid #007bff', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)' },
-    fileInput: { display: 'none' },
-    uploadButton: { backgroundColor: '#28a745', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '15px', width: '100%', maxWidth: '180px', textAlign: 'center' },
-    detailsSection: { flex: '1', display: 'flex', flexDirection: 'column', gap: '20px' },
-    formRow: { display: 'flex', flexDirection: isMobileView ? 'column' : 'row', gap: '20px' },
-    formField: { flex: '1', display: 'flex', flexDirection: 'column', gap: '5px', minWidth: isMobileView ? 'none' : '200px' },
-    label: { fontWeight: '600', fontSize: '14px', color: '#333' },
-    input: { padding: '12px 15px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '15px', width: '100%', boxSizing: 'border-box' },
-    select: { padding: '12px 15px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '15px', backgroundColor: 'white', width: '100%', boxSizing: 'border-box' },
-    textarea: { padding: '12px 15px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '15px', width: '100%', minHeight: '80px', boxSizing: 'border-box', fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" },
-    infoText: { fontSize: '15px', color: '#555', padding: '10px 0', borderBottom: '1px solid #eee', wordBreak: 'break-word' },
-    infoGroup: { marginBottom: '15px' },
-    infoLabel: { fontWeight: '600', fontSize: '14px', color: '#333', display: 'block', marginBottom: '5px' },
-    actions: { marginTop: '30px', display: 'flex', gap: '15px', justifyContent: 'flex-end' },
-    saveButton: { backgroundColor: '#007bff', color: 'white', padding: '12px 25px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px' },
-    cancelButton: { backgroundColor: '#6c757d', color: 'white', padding: '12px 25px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px' },
-    loadingMessage: { textAlign: 'center', fontSize: '18px', color: '#007bff', padding: '50px' },
-    message: { padding: '15px', margin: '20px 0', borderRadius: '6px', textAlign: 'center', fontWeight: '500' },
-    errorMessage: { backgroundColor: '#f8d7da', color: '#721c24', border: '1px solid #f5c6cb' },
-    successMessage: { backgroundColor: '#d4edda', color: '#155724', border: '1px solid #c3e6cb' },
-    studentId: { backgroundColor: '#e9ecef', padding: '8px 12px', borderRadius: '4px', fontSize: '14px', color: '#495057', fontWeight: 'bold', textAlign: 'center', margin: '10px 0 20px 0', border: '1px dashed #adb5bd' },
-    addressGroup: { padding: '15px', border: '1px solid #e0e0e0', borderRadius: '8px', marginTop: '10px', backgroundColor: '#f9f9f9' },
-    addressTitle: { fontSize: '16px', fontWeight: 'bold', color: '#007bff', marginBottom: '10px', borderBottom: '1px solid #007bff', paddingBottom: '5px' }
-  };
-
-  // 2. ADDED: Style for the back button to use in the header
-  const backButtonStyle = {
+    pageContainer: {
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      backgroundColor: '#f0f2f5',
+      minHeight: '100vh',
+      padding: isMobileView ? '20px' : '40px',
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
-      background: 'transparent',
-      border: 'none',
+      boxSizing: 'border-box',
+    },
+    profileCard: {
+      backgroundColor: '#ffffff',
+      borderRadius: '12px',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+      width: '100%',
+      maxWidth: '900px',
+      overflow: 'hidden',
+    },
+    cardHeader: {
+      backgroundColor: '#007bff', // Primary color
       color: 'white',
-      borderRadius: '50%',
-      width: '40px',
-      height: '40px',
+      padding: '20px 30px',
+      fontSize: '24px',
+      fontWeight: '600',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    editButton: {
+      backgroundColor: '#ffffff',
+      color: '#007bff',
+      border: '1px solid #007bff',
+      padding: '8px 16px',
+      borderRadius: '6px',
       cursor: 'pointer',
-      transition: 'background-color 0.2s ease-in-out',
+      fontSize: '14px',
+      fontWeight: '500',
+      transition: 'all 0.3s ease',
+    },
+    // editButtonHover (cannot do with inline, handle with JS if needed or simplify)
+    cardBody: {
+      padding: '30px',
+      display: 'flex',
+      flexDirection: isMobileView ? 'column' : 'row',
+      gap: '30px',
+    },
+    pictureSection: {
+      flex: isMobileView ? '1' : '0 0 250px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '20px',
+    },
+    profileImage: {
+      width: '180px',
+      height: '180px',
+      borderRadius: '50%',
+      objectFit: 'cover',
+      border: '4px solid #007bff',
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+    },
+    fileInput: {
+      display: 'none', // Hidden, triggered by button
+    },
+    uploadButton: {
+      backgroundColor: '#28a745', // Green for upload
+      color: 'white',
+      padding: '10px 20px',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '15px',
+      width: '100%',
+      maxWidth: '180px',
+      textAlign: 'center',
+    },
+    detailsSection: {
+      flex: '1',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '20px',
+    },
+    formRow: {
+        display: 'flex',
+        flexDirection: isMobileView ? 'column' : 'row',
+        gap: '20px',
+    },
+    formField: {
+      flex: '1', // Each field takes equal space in a row
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '5px',
+      minWidth: isMobileView ? 'none' : '200px', // Prevent too much squishing
+    },
+    label: {
+      fontWeight: '600',
+      fontSize: '14px',
+      color: '#333',
+    },
+    input: {
+      padding: '12px 15px',
+      border: '1px solid #ced4da',
+      borderRadius: '6px',
+      fontSize: '15px',
+      width: '100%', // Take full width of its container (formField)
+      boxSizing: 'border-box', // Include padding and border in the element's total width and height
+    },
+    select: {
+      padding: '12px 15px',
+      border: '1px solid #ced4da',
+      borderRadius: '6px',
+      fontSize: '15px',
+      backgroundColor: 'white',
+      width: '100%',
+      boxSizing: 'border-box',
+    },
+    textarea: {
+        padding: '12px 15px',
+        border: '1px solid #ced4da',
+        borderRadius: '6px',
+        fontSize: '15px',
+        width: '100%',
+        minHeight: '80px',
+        boxSizing: 'border-box',
+        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    },
+    infoText: {
+      fontSize: '15px',
+      color: '#555',
+      padding: '10px 0',
+      borderBottom: '1px solid #eee',
+      wordBreak: 'break-word',
+    },
+    infoGroup: {
+        marginBottom: '15px',
+    },
+    infoLabel: {
+        fontWeight: '600',
+        fontSize: '14px',
+        color: '#333',
+        display: 'block',
+        marginBottom: '5px'
+    },
+    actions: {
+      marginTop: '30px',
+      display: 'flex',
+      gap: '15px',
+      justifyContent: 'flex-end',
+    },
+    saveButton: {
+      backgroundColor: '#007bff',
+      color: 'white',
+      padding: '12px 25px',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '16px',
+    },
+    cancelButton: {
+      backgroundColor: '#6c757d', // Secondary/gray color
+      color: 'white',
+      padding: '12px 25px',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '16px',
+    },
+    loadingMessage: {
+      textAlign: 'center',
+      fontSize: '18px',
+      color: '#007bff',
+      padding: '50px',
+    },
+    message: {
+      padding: '15px',
+      margin: '20px 0',
+      borderRadius: '6px',
+      textAlign: 'center',
+      fontWeight: '500',
+    },
+    errorMessage: {
+      backgroundColor: '#f8d7da',
+      color: '#721c24',
+      border: '1px solid #f5c6cb',
+    },
+    successMessage: {
+      backgroundColor: '#d4edda',
+      color: '#155724',
+      border: '1px solid #c3e6cb',
+    },
+    studentId: {
+        backgroundColor: '#e9ecef',
+        padding: '8px 12px',
+        borderRadius: '4px',
+        fontSize: '14px',
+        color: '#495057',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        margin: '10px 0 20px 0',
+        border: '1px dashed #adb5bd'
+    },
+    addressGroup: {
+        padding: '15px',
+        border: '1px solid #e0e0e0',
+        borderRadius: '8px',
+        marginTop: '10px',
+        backgroundColor: '#f9f9f9'
+    },
+    addressTitle: {
+        fontSize: '16px',
+        fontWeight: 'bold',
+        color: '#007bff',
+        marginBottom: '10px',
+        borderBottom: '1px solid #007bff',
+        paddingBottom: '5px'
+    }
   };
 
-  if (isLoading && !userData) { return <div style={styles.loadingMessage}>Loading Profile...</div>; }
-  if (error && !userData) { return <div style={{ ...styles.message, ...styles.errorMessage }}>{error}</div>; }
-  if (!userData) { return <div style={styles.loadingMessage}>No user data available.</div>; }
+
+  if (isLoading && !userData) { // Initial load
+    return <div style={styles.loadingMessage}>Loading Profile...</div>;
+  }
+
+  if (error && !userData) { // Critical error on initial load
+    return <div style={{ ...styles.message, ...styles.errorMessage }}>{error}</div>;
+  }
+
+  if (!userData) { // Should not happen if loading and error are handled, but as a fallback
+    return <div style={styles.loadingMessage}>No user data available.</div>;
+  }
 
   return (
     <div style={styles.pageContainer}>
@@ -256,20 +454,7 @@ const ProfilePage = () => {
 
       <div style={styles.profileCard}>
         <div style={styles.cardHeader}>
-          {/* 3. MODIFIED: This is the only part of your layout that has changed */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <button
-              style={backButtonStyle}
-              onClick={() => window.history.back()}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              aria-label="Go back"
-            >
-              <FiArrowLeft size={22} />
-            </button>
-            <span>My Profile</span>
-          </div>
-
+          <span>My Profile</span>
           {!isEditing && (
             <button style={styles.editButton} onClick={() => setIsEditing(true)}>
               Edit Profile
@@ -307,7 +492,7 @@ const ProfilePage = () => {
                   >
                     Change Photo
                   </button>
-                  {/* {profilePictureFile && (
+                  {profilePictureFile && (
                     <button
                       type="button"
                       onClick={handleUpdateProfilePicture}
@@ -316,7 +501,7 @@ const ProfilePage = () => {
                     >
                       {isLoading ? 'Uploading...' : 'Upload New Photo'}
                     </button>
-                  )} */}
+                  )}
                 </>
               )}
                {!isEditing && userData.profilePicture?.url && (
@@ -411,6 +596,7 @@ const ProfilePage = () => {
                         </div>
                     </div>
                   </div>
+
                 </>
               ) : (
                 <>
@@ -442,6 +628,7 @@ const ProfilePage = () => {
                     type="button"
                     onClick={() => {
                         setIsEditing(false);
+                        // Reset form data to original user data or last saved state
                         setFormData({
                             username: userData.username || '',
                             email: userData.email || '',
@@ -460,9 +647,9 @@ const ProfilePage = () => {
                                 zipCode: userData.address?.zipCode || '',
                             },
                         });
-                        setProfilePicturePreview(userData.profilePicture?.url || DEFAULT_AVATAR);
-                        setProfilePictureFile(null);
-                        setError('');
+                        setProfilePicturePreview(userData.profilePicture?.url || DEFAULT_AVATAR); // Reset preview
+                        setProfilePictureFile(null); // Clear selected file
+                        setError(''); // Clear any previous errors
                     }}
                     style={styles.cancelButton}
                     disabled={isLoading}
