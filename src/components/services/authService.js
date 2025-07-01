@@ -19,7 +19,8 @@ const saveProfileData = (formData, userIdentifier) => {
   if (userIdentifier.email) formData.append('email', userIdentifier.email);
   if (userIdentifier.mobile) formData.append('mobile', userIdentifier.mobile);
   
-  return axios.post(`${API_URL}/form`, formData, {
+  // Change "/form" to "/register-form" here
+  return axios.post(`${API_URL}/form`, formData,   { 
     headers: {
       'Content-Type': 'multipart/form-data',
     },

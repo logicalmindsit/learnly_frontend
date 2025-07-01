@@ -172,7 +172,7 @@ const SignupModal = ({ open, onClose, onSwitchToLogin }) => {
     };
 
     return (
-        <Dialog open={open} onClose={resetModal} PaperProps={{ sx: { borderRadius: '12px', width: '100%', maxWidth: '550px', m: 2 } }}>
+        <Dialog open={open} onClose={resetModal} PaperProps={{ sx: { borderRadius: '12px', width: '100%', maxWidth: '750px', m: 2 } }}>
             <DialogTitle sx={{ fontWeight: '600', pb: 1 }}>
                 Create Your Account
                 <IconButton onClick={resetModal} sx={{ position: 'absolute', right: 12, top: 12, color: (theme) => theme.palette.grey[500] }}>

@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ Re-added
+import { useNavigate } from 'react-router-dom';
 import {
   Box, TextField, Button, CircularProgress, Typography,
-  RadioGroup, FormControlLabel, Radio, FormLabel, FormControl,
   IconButton, InputAdornment
 } from '@mui/material';
-import EmailIcon from '@mui/icons-material/Email';
-import PhoneIcon from '@mui/icons-material/Phone';
 import LockIcon from '@mui/icons-material/Lock';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle'; // A neutral icon for the combined field
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import authService from '../../components/services/authService';
@@ -15,22 +13,22 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../../Context/AuthContext';
 
 const LoginForm = ({ onLoginSuccess }) => {
-  const [formData, setFormData] = useState({ identifier: '', password: '' });
-  const [loginWith, setLoginWith] = useState('email');
+  // CHANGED: Simplified state for a single identifier field
+  const [formData, setFormData] = useState({
+    emailOrMobile: '',
+    password: ''
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { login } = useAuth();
-  const navigate = useNavigate(); // ✅ Re-added navigation hook
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleLoginTypeChange = (e) => {
-    setLoginWith(e.target.value);
-    setFormData({ identifier: '', password: formData.password });
-  };
+  // REMOVED: handleLoginTypeChange is no longer needed
 
   const handleClickShowPassword = () => setShowPassword(!showPassword);
   const handleMouseDownPassword = (event) => event.preventDefault();
@@ -39,11 +37,15 @@ const LoginForm = ({ onLoginSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const payload = { password: formData.password };
-      if (loginWith === 'email') {
-        payload.email = formData.identifier;
+      // CHANGED: Logic to detect if input is email or mobile
+      const { emailOrMobile, password } = formData;
+      const payload = { password };
+
+      // Simple detection: if it contains '@', it's an email. Otherwise, it's a mobile number.
+      if (emailOrMobile.includes('@')) {
+        payload.email = emailOrMobile;
       } else {
-        payload.mobile = formData.identifier;
+        payload.mobile = emailOrMobile;
       }
 
       const response = await authService.login(payload);
@@ -54,11 +56,10 @@ const LoginForm = ({ onLoginSuccess }) => {
         });
 
         login(response.data.token, response.data.user.id);
-
         if (onLoginSuccess) onLoginSuccess();
-
-        // ✅ Redirect to home page
+        
         navigate("/");
+        setTimeout(() => window.location.reload(), 100);
 
       } else {
         toast.error("Login failed: Invalid response from server.");
@@ -73,30 +74,23 @@ const LoginForm = ({ onLoginSuccess }) => {
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-      <FormControl component="fieldset" sx={{ mb: 1 }}>
-        <FormLabel component="legend">Login with:</FormLabel>
-        <RadioGroup row name="loginType" value={loginWith} onChange={handleLoginTypeChange}>
-          <FormControlLabel value="email" control={<Radio />} label="Email" />
-          <FormControlLabel value="mobile" control={<Radio />} label="Mobile" />
-        </RadioGroup>
-      </FormControl>
+      {/* REMOVED: Radio button group is gone */}
 
+      {/* CHANGED: A single text field for both email and mobile */}
       <TextField
         margin="normal"
         required
         fullWidth
-        id="identifier"
-        label={loginWith === 'email' ? 'Email Address' : 'Mobile Number (with country code)'}
-        name="identifier"
-        autoComplete={loginWith === 'email' ? 'email' : 'tel'}
-        placeholder={loginWith === 'mobile' ? '+1234567890' : ''}
+        id="emailOrMobile"
+        label="Email or Mobile Number"
+        name="emailOrMobile"
+        autoComplete="email" // "email" works well for both
+        placeholder="e.g., user@example.com or +1234567890"
         autoFocus
-        value={formData.identifier}
+        value={formData.emailOrMobile}
         onChange={handleChange}
         InputProps={{
-          startAdornment: loginWith === 'email'
-            ? <EmailIcon sx={{ mr: 1, color: 'action.active' }} />
-            : <PhoneIcon sx={{ mr: 1, color: 'action.active' }} />,
+          startAdornment: <AccountCircleIcon sx={{ mr: 1, color: 'action.active' }} />,
         }}
       />
       <TextField

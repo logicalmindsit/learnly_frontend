@@ -1,8 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://learnly-backend-05ix.onrender.com",
-  //baseURL: 'https://admin-website-backend.onrender.com',
+  baseURL: "https://learnly-backend-05ix.onrender.com"
 });
 
 

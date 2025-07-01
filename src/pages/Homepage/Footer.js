@@ -1,9 +1,3 @@
-
-
-
-
-
-// Footer.js
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaYoutube, FaFacebookF, FaInstagram, FaTwitter, FaPhoneAlt, FaMapMarkerAlt, FaEnvelope } from 'react-icons/fa';
@@ -28,7 +22,7 @@ const FooterContainer = styled.footer(({ theme = defaultTheme }) => ({
 }));
 
 const TopFooter = styled.div(({ theme = defaultTheme }) => ({
-  padding: '50px 5%',
+  padding: '30px 5%',
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
@@ -87,10 +81,10 @@ const SubscribeButton = styled.button(({ theme = defaultTheme }) => ({
 }));
 
 const MainFooter = styled.div(({ theme = defaultTheme }) => ({
-  padding: '50px 5%',
+  padding: '5px 3%',
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '40px',
+  gap: '30px',
   borderTop: `1px solid ${theme.colors.border}`,
   '@media (max-width: 600px)': {
     gridTemplateColumns: '1fr',
@@ -104,19 +98,25 @@ const FooterColumn = styled.div({
 });
 
 const ColTitle = styled.h4(({ theme = defaultTheme }) => ({
-  fontSize: '20px',
+  fontSize: '18px',
   fontWeight: 600,
   color: theme.colors.secondary,
-  marginBottom: '20px',
+  marginBottom: '15px',
+  '@media (max-width: 600px)': {
+    fontSize: '19px', // Make title slightly bigger on mobile
+  },
 }));
 
 const ContactItem = styled.div({
   display: 'flex',
   alignItems: 'center',
   gap: '15px',
-  marginBottom: '15px',
-  fontSize: '16px',
-  lineHeight: 1.6,
+  marginBottom: '12px',
+  fontSize: '15px',
+  lineHeight: 1.5,
+  '@media (max-width: 600px)': {
+    fontSize: '16px', // Increase font size for mobile
+  },
 });
 
 const ContactIcon = styled.div(({ theme = defaultTheme }) => ({
@@ -135,11 +135,14 @@ const FooterLink = styled(Link)(({ theme = defaultTheme }) => ({
   display: 'block',
   color: theme.colors.text,
   textDecoration: 'none',
-  marginBottom: '12px',
-  fontSize: '20px',
+  marginBottom: '10px',
+  fontSize: '15px',
   transition: 'color 0.2s ease',
   '&:hover': {
     color: theme.colors.primary,
+  },
+  '@media (max-width: 600px)': {
+    fontSize: '16px', // Increase font size for mobile
   },
 }));
 
@@ -156,10 +159,13 @@ const SocialLink = styled.a(({ theme = defaultTheme }) => ({
   gap: '10px',
   color: theme.colors.text,
   textDecoration: 'none',
-  fontSize: '20px',
+  fontSize: '15px',
   transition: 'color 0.2s ease',
   '&:hover': {
     color: theme.colors.primary,
+  },
+  '@media (max-width: 600px)': {
+    fontSize: '16px', // Increase font size for mobile
   },
 }));
 
@@ -182,7 +188,7 @@ const BottomFooter = styled.div(({ theme = defaultTheme }) => ({
 const LogoBottom = styled(Link)(({ theme = defaultTheme }) => ({
   display: 'flex',
   alignItems: 'center',
-  fontSize: '24px',
+  fontSize: '22px',
   fontWeight: 800,
   color: theme.colors.primary,
   textDecoration: 'none',
@@ -237,31 +243,31 @@ const Footer = ({ theme }) => {
 
         <FooterColumn>
           <ColTitle theme={mergedTheme}>Popular subjects</ColTitle>
-          <FooterLink to="/courses/developer" theme={mergedTheme}>Siddha</FooterLink>
-          <FooterLink to="/courses/marketing" theme={mergedTheme}>Ayurveda</FooterLink>
-          <FooterLink to="/courses/business" theme={mergedTheme}>Varma</FooterLink>
-          <FooterLink to="/courses/design" theme={mergedTheme}>Design</FooterLink>
+          <FooterLink to="#" theme={mergedTheme}>Siddha</FooterLink>
+          <FooterLink to="#" theme={mergedTheme}>Ayurveda</FooterLink>
+          <FooterLink to="#" theme={mergedTheme}>Varma</FooterLink>
+          <FooterLink to="#" theme={mergedTheme}>Design</FooterLink>
         </FooterColumn>
 
         <FooterColumn>
           <ColTitle theme={mergedTheme}>Follow us</ColTitle>
           <SocialItem>
-            <SocialLink href="#" target="_blank" rel="noopener noreferrer" theme={mergedTheme}>
+            <SocialLink href="#" theme={mergedTheme}>
               <FaYoutube color="#FF0000" /> YouTube
             </SocialLink>
           </SocialItem>
           <SocialItem>
-            <SocialLink href="#" target="_blank" rel="noopener noreferrer" theme={mergedTheme}>
+            <SocialLink href="#"  theme={mergedTheme}>
               <FaFacebookF color="#1877F2" /> Facebook
             </SocialLink>
           </SocialItem>
           <SocialItem>
-            <SocialLink href="#" target="_blank" rel="noopener noreferrer" theme={mergedTheme}>
+            <SocialLink href="#"theme={mergedTheme}>
               <FaInstagram color="#C13584" /> Instagram
             </SocialLink>
           </SocialItem>
           <SocialItem>
-            <SocialLink href="#" target="_blank" rel="noopener noreferrer" theme={mergedTheme}>
+            <SocialLink href="#" target="_blank"  theme={mergedTheme}>
               <FaTwitter color="#1DA1F2" /> Twitter
             </SocialLink>
           </SocialItem>

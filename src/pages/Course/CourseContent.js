@@ -1,364 +1,1155 @@
-
 import React, { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
-import { FaHeadphones, FaFilePdf, FaPlay, FaPause, FaChevronDown, FaChevronRight, FaCheckCircle, FaTimesCircle, FaLock, FaStepForward, FaStepBackward, FaForward, FaBackward } from "react-icons/fa";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  FaHeadphones, FaFilePdf, FaPlay, FaPause,
+  FaChevronRight, FaCheckCircle, FaLock,
+  FaStepForward, FaStepBackward, FaForward, FaBackward,
+  FaVolumeUp, FaVolumeMute, FaEdit, FaBookOpen,
+  FaArrowLeft, FaTimes,FaSun, FaMoon
+} from "react-icons/fa";
 import { IoMdTime } from "react-icons/io";
-import { BsGraphUp, BsCheck2All } from "react-icons/bs";
+import { BsCheck2All } from "react-icons/bs";
+import { AiOutlineSetting } from "react-icons/ai";
+import { MdMenuBook } from "react-icons/md";
+
+// Theme Constants (Udemy-inspired palette) - COLORS CHANGED AS REQUESTED
+const theme = {
+  colors: {
+    primary: '#007bff',      // CHANGED from '#a435f0'
+    primaryDark: '#0069d9',   // CHANGED from '#8710d8'
+    primaryLight: '#5faaff',  // CHANGED from '#b766f5'
+    secondary: '#2d2f31',
+    accent: '#f7c948',
+    light: '#f7f7f7',
+    dark: '#1c1d1f',
+    gray: '#6a6f73',
+    lightGray: '#d1d7dc',
+    white: '#ffffff',
+    success: '#03a678',
+    successDark: '#028062',
+    warning: '#f7c948',
+    danger: '#d93025',
+    textDark: '#1c1d1f',
+    textLight: '#ffffff',
+    overlay: 'rgba(0, 0, 0, 0.6)',
+  },
+  spacing: {
+    xs: '4px',
+    sm: '8px',
+    md: '16px',
+    lg: '24px',
+    xl: '32px',
+    xxl: '48px'
+  },
+  borderRadius: {
+    sm: '4px',
+    md: '6px',
+    lg: '8px',
+    circle: '50%'
+  },
+  shadows: {
+    sm: '0 1px 2px rgba(0,0,0,0.1)',
+    md: '0 2px 4px rgba(0,0,0,0.15)',
+    lg: '0 4px 8px rgba(0,0,0,0.2)'
+  },
+  breakpoints: {
+    mobile: '576px',
+    tablet: '768px',
+    laptop: '992px',
+    desktop: '1200px'
+  },
+  transitions: {
+    fast: 'all 0.2s ease',
+    normal: 'all 0.3s ease',
+    slow: 'all 0.5s ease'
+  }
+};
+
+// Media Query Hook - UNCHANGED
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    const listener = () => setMatches(media.matches);
+    media.addListener(listener);
+    return () => media.removeListener(listener);
+  }, [matches, query]);
+  return matches;
+};
+
+// Helper Functions - UNCHANGED
+const formatTime = (seconds) => {
+  if (isNaN(seconds)) return "0:00";
+  const minutes = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+};
 
 export default function CourseContent() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [chapters, setChapters] = useState([]);
   const [selectedLesson, setSelectedLesson] = useState(null);
-  const [expandedChapters, setExpandedChapters] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [examAnswers, setExamAnswers] = useState({});
   const [submissionStatus, setSubmissionStatus] = useState(null);
-  const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [userProgress, setUserProgress] = useState({
-    completedLessons: [],
-    attemptedExam: false,
-    examScore: null
-  });
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentAudioIndex, setCurrentAudioIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(80);
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [showPlaybackOptions, setShowPlaybackOptions] = useState(false);
-  
+  const [currentAudioFileIndex, setCurrentAudioFileIndex] = useState(0);
+  const [userProgress, setUserProgress] = useState({
+    completedLessons: [],
+    attemptedExams: {},
+  });
   const audioRef = useRef(null);
   const progressBarRef = useRef(null);
+  const volumeBarRef = useRef(null);
+  const playbackOptionsRef = useRef(null);
+  const modalRef = useRef(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedChapterIndex, setSelectedChapterIndex] = useState(0);
+  const [hasUserPressedPlay, setHasUserPressedPlay] = useState(false);
+  
+  // Theme state logic
+  const [themeMode, setThemeMode] = useState(() => {
+    const savedTheme = localStorage.getItem('courseTheme');
+    return savedTheme || 'light';
+  });
 
-  // Load user progress from localStorage on component mount
   useEffect(() => {
-    const savedProgress = localStorage.getItem(`courseProgress_${id}`);
-    if (savedProgress) {
-      setUserProgress(JSON.parse(savedProgress));
+    localStorage.setItem('courseTheme', themeMode);
+  }, [themeMode]);
+
+  const toggleTheme = () => {
+    setThemeMode(prevMode => (prevMode === 'light' ? 'dark' : 'light'));
+  };
+
+  const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.tablet})`);
+  
+  const sidebarWidth = isMobile ? '100%' : '400px';
+  const MAIN_HEADER_HEIGHT = '65px';
+
+  // Color palette logic
+  const lightColors = {
+    ...theme.colors 
+  };
+
+  const darkColors = {
+    ...theme.colors,
+    primary: '#5faaff',        // CHANGED from '#b766f5' to a light blue
+    primaryDark: '#007bff',    // CHANGED from '#a435f0' to the main blue
+    primaryLight: '#3c3e41', 
+    light: '#2d2f31',
+    dark: '#1c1d1f',
+    gray: '#a9a9a9',
+    lightGray: '#3c3e41',
+    white: '#1c1d1f',
+    textDark: '#ffffff',
+    textLight: '#ffffff',
+    overlay: 'rgba(0, 0, 0, 0.7)',
+  };
+
+  const activeColors = themeMode === 'light' ? lightColors : darkColors;
+  
+  const styles = {
+    appContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '100vh',
+      backgroundColor: activeColors.dark,
+      fontFamily: "'Inter', sans-serif",
+      color: activeColors.textDark,
+    },
+    header: {
+      position: 'sticky',
+      top: MAIN_HEADER_HEIGHT,
+      zIndex: 1000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
+      backgroundColor: activeColors.primary,
+      color: activeColors.textLight,
+      height: '60px',
+      boxShadow: theme.shadows.sm,
+      '@media (max-width: 768px)': {
+        padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+        height: '56px',
+        top: 0,
+      }
+    },
+    headerLeft: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing.md,
+    },
+    headerButton: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+      borderRadius: theme.borderRadius.md,
+      border: 'none',
+      backgroundColor: 'transparent',
+      color: activeColors.textLight,
+      fontWeight: 500,
+      fontSize: '0.9rem',
+      cursor: 'pointer',
+      transition: theme.transitions.normal,
+      ':hover': {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)'
+      },
+    },
+    headerTitle: {
+      fontSize: '1rem',
+      fontWeight: 600,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      margin: 0,
+      flex: 1,
+      textAlign: 'center',
+    },
+    contentButton: {
+      backgroundColor: activeColors.primary,
+      color: activeColors.white,
+      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+      borderRadius: theme.borderRadius.md,
+      border: 'none',
+      fontWeight: 600,
+      fontSize: '0.9rem',
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      cursor: 'pointer',
+      transition: theme.transitions.normal,
+      ':hover': {
+        backgroundColor: activeColors.primaryDark
+      },
+    },
+    themeToggleButton: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '40px',
+      height: '40px',
+      padding: theme.spacing.sm,
+      borderRadius: theme.borderRadius.circle,
+      border: `1px solid ${activeColors.textLight}`,
+      backgroundColor: 'transparent',
+      color: activeColors.textLight,
+      fontSize: '1.2rem',
+      cursor: 'pointer',
+      transition: theme.transitions.normal,
+      ':hover': {
+        backgroundColor: 'rgba(255, 255, 255, 0.15)'
+      }
+    },
+    audioPlayer: {
+      backgroundColor: activeColors.white,
+      padding: theme.spacing.md,
+      borderTop: `1px solid ${activeColors.lightGray}`,
+      boxShadow: theme.shadows.sm,
+      zIndex: 999,
+      '@media (min-width: 768px)': {
+        position: 'sticky',
+        top: `calc(${MAIN_HEADER_HEIGHT} + 60px)`,
+      },
+      '@media (max-width: 768px)': {
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: theme.spacing.sm,
+      }
+    },
+    playerRow: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: theme.spacing.sm,
+      '@media (min-width: 768px)': {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+      }
+    },
+    playerInfo: {
+      flex: 1,
+      minWidth: 0,
+      '@media (min-width: 768px)': {
+        marginRight: theme.spacing.md,
+      }
+    },
+    audioTitle: {
+      fontWeight: 600,
+      fontSize: '0.95rem',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      marginBottom: theme.spacing.xs,
+    },
+    audioSubtitle: {
+      fontSize: '0.75rem',
+      color: activeColors.gray,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+    },
+    progressContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      width: '100%',
+      '@media (min-width: 768px)': {
+        flex: 2,
+      }
+    },
+    progressBar: {
+      flex: 1,
+      height: '6px',
+      backgroundColor: activeColors.lightGray,
+      borderRadius: theme.borderRadius.lg,
+      position: 'relative',
+      cursor: 'pointer',
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: activeColors.primary,
+      borderRadius: theme.borderRadius.lg,
+      position: 'relative'
+    },
+    progressThumb: {
+      position: 'absolute',
+      top: '50%',
+      right: '-6px',
+      transform: 'translateY(-50%)',
+      width: '12px',
+      height: '12px',
+      backgroundColor: activeColors.primary,
+      borderRadius: theme.borderRadius.circle,
+      boxShadow: theme.shadows.sm,
+    },
+    timeDisplay: {
+      fontSize: '0.75rem',
+      color: activeColors.gray,
+      minWidth: '40px',
+      textAlign: 'center',
+    },
+    controlsRow: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: theme.spacing.sm,
+      marginTop: theme.spacing.sm,
+      '@media (max-width: 768px)': {
+        flexDirection: 'column',
+        gap: theme.spacing.md,
+      }
+    },
+    controlsGroup: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      '@media (max-width: 768px)': {
+        gap: theme.spacing.md,
+      }
+    },
+    controlButton: {
+      width: '36px',
+      height: '36px',
+      borderRadius: theme.borderRadius.circle,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'transparent',
+      border: 'none',
+      color: activeColors.textDark,
+      cursor: 'pointer',
+      transition: theme.transitions.normal,
+      ':hover': {
+        backgroundColor: activeColors.lightGray
+      },
+      ':disabled': {
+        opacity: 0.5,
+        cursor: 'not-allowed'
+      },
+    },
+    playButton: {
+      width: '42px',
+      height: '42px',
+      backgroundColor: activeColors.primary,
+      color: activeColors.textLight,
+      ':hover': {
+        backgroundColor: activeColors.primaryDark
+      },
+    },
+    volumeControl: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+    },
+    volumeBar: {
+      width: '80px',
+      height: '4px',
+      backgroundColor: activeColors.lightGray,
+      borderRadius: theme.borderRadius.lg,
+      position: 'relative',
+      cursor: 'pointer',
+    },
+    volumeFill: {
+      height: '100%',
+      backgroundColor: activeColors.primary,
+      borderRadius: theme.borderRadius.lg
+    },
+    volumeThumb: {
+      position: 'absolute',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      width: '10px',
+      height: '10px',
+      backgroundColor: activeColors.primary,
+      borderRadius: theme.borderRadius.circle,
+    },
+    playbackRate: {
+      position: 'relative'
+    },
+    rateButton: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing.xs,
+      backgroundColor: activeColors.white,
+      border: `1px solid ${activeColors.lightGray}`,
+      borderRadius: theme.borderRadius.md,
+      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+      fontSize: '0.8rem',
+      cursor: 'pointer',
+      transition: theme.transitions.normal,
+      ':hover': {
+        borderColor: activeColors.primary
+      },
+    },
+    rateOptions: {
+      position: 'absolute',
+      bottom: '100%',
+      right: 0,
+      backgroundColor: activeColors.white,
+      borderRadius: theme.borderRadius.md,
+      boxShadow: theme.shadows.md,
+      padding: theme.spacing.sm,
+      minWidth: '100px',
+      zIndex: 10
+    },
+    rateOption: {
+      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+      borderRadius: theme.borderRadius.sm,
+      fontSize: '0.8rem',
+      cursor: 'pointer',
+      transition: theme.transitions.fast,
+      ':hover': {
+        backgroundColor: activeColors.lightGray
+      },
+    },
+    activeRate: {
+      backgroundColor: activeColors.primaryLight,
+      color: activeColors.white,
+      fontWeight: 600
+    },
+    mainContent: {
+      flex: 1,
+      padding: theme.spacing.lg,
+      maxWidth: '1200px',
+      margin: '0 auto',
+      width: '100%',
+      backgroundColor: activeColors.light,
+      transition: `margin-right ${theme.transitions.normal}`,
+      '@media (max-width: 768px)': {
+        padding: theme.spacing.md,
+        paddingBottom: '100px',
+      },
+      '@media (min-width: 768px)': {
+        paddingTop: `calc(${MAIN_HEADER_HEIGHT} + 24px)`,
+      }
+    },
+    card: {
+      backgroundColor: activeColors.white,
+      borderRadius: theme.borderRadius.md,
+      boxShadow: theme.shadows.sm,
+      padding: theme.spacing.lg,
+      marginBottom: theme.spacing.lg,
+    },
+    lessonHeader: {
+      marginBottom: theme.spacing.lg,
+      paddingBottom: theme.spacing.md,
+      borderBottom: `1px solid ${activeColors.lightGray}`
+    },
+    lessonTitle: {
+      fontSize: '1.75rem',
+      fontWeight: 700,
+      margin: `0 0 ${theme.spacing.sm} 0`,
+      color: activeColors.textDark,
+    },
+    sectionTitle: {
+      fontSize: '1.25rem',
+      fontWeight: 600,
+      margin: `0 0 ${theme.spacing.md} 0`,
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      color: activeColors.textDark,
+    },
+    audioList: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: theme.spacing.sm
+    },
+    audioItem: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: theme.spacing.md,
+      borderRadius: theme.borderRadius.md,
+      backgroundColor: activeColors.white,
+      border: `1px solid ${activeColors.lightGray}`,
+      cursor: 'pointer',
+      transition: theme.transitions.normal,
+      ':hover': {
+        borderColor: activeColors.primary
+      },
+    },
+    activeAudioItem: {
+      backgroundColor: activeColors.primaryLight,
+      borderColor: activeColors.primary,
+      color: activeColors.white
+    },
+    audioItemInfo: {
+      flex: 1,
+      minWidth: 0,
+      marginRight: theme.spacing.md
+    },
+    audioItemTitle: {
+      fontWeight: 500,
+      fontSize: '0.95rem',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      marginBottom: theme.spacing.xs,
+    },
+    audioItemMeta: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      fontSize: '0.75rem',
+      color: activeColors.gray,
+    },
+    pdfGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+      gap: theme.spacing.md,
+    },
+    pdfCard: {
+      display: 'flex',
+      alignItems: 'center',
+      borderRadius: theme.borderRadius.md,
+      border: `1px solid ${activeColors.lightGray}`,
+      textDecoration: 'none',
+      color: activeColors.textDark,
+      transition: theme.transitions.normal,
+      ':hover': {
+        boxShadow: theme.shadows.md,
+        borderColor: activeColors.primary
+      },
+    },
+    pdfIcon: {
+      padding: theme.spacing.lg,
+      backgroundColor: activeColors.lightGray,
+      color: activeColors.primary,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '1.5rem',
+    },
+    pdfDetails: {
+      padding: theme.spacing.md,
+      flex: 1,
+      minWidth: 0,
+    },
+    pdfTitle: {
+      fontWeight: 500,
+      fontSize: '0.9rem',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      marginBottom: theme.spacing.xs,
+    },
+    lessonActions: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: theme.spacing.lg,
+      paddingTop: theme.spacing.md,
+      borderTop: `1px solid ${activeColors.lightGray}`
+    },
+    badge: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+      borderRadius: theme.borderRadius.md,
+      fontWeight: 500,
+      fontSize: '0.9rem'
+    },
+    successBadge: {
+      backgroundColor: activeColors.success,
+      color: activeColors.white
+    },
+    button: {
+      padding: `${theme.spacing.md} ${theme.spacing.lg}`,
+      borderRadius: theme.borderRadius.md,
+      border: 'none',
+      fontWeight: 600,
+      fontSize: '0.9rem',
+      cursor: 'pointer',
+      transition: theme.transitions.normal,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.spacing.sm,
+    },
+    primaryButton: {
+      backgroundColor: activeColors.primary,
+      color: activeColors.white,
+      ':hover': {
+        backgroundColor: activeColors.primaryDark
+      }
+    },
+    emptyState: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      textAlign: 'center',
+      padding: theme.spacing.xl,
+      color: activeColors.gray
+    },
+    emptyIcon: {
+      width: '60px',
+      height: '60px',
+      borderRadius: theme.borderRadius.circle,
+      backgroundColor: activeColors.lightGray,
+      color: activeColors.primary,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '1.75rem',
+      marginBottom: theme.spacing.lg,
+    },
+    emptyTitle: {
+      fontSize: '1.5rem',
+      fontWeight: 600,
+      color: activeColors.textDark,
+      marginBottom: theme.spacing.sm,
+    },
+    emptyText: {
+      fontSize: '0.95rem',
+      maxWidth: '400px',
+      lineHeight: 1.5,
+      marginBottom: theme.spacing.lg,
+    },
+    sidebarOverlay: {
+      position: 'fixed',
+      top: MAIN_HEADER_HEIGHT,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: activeColors.overlay,
+      zIndex: 2000,
+      transition: `opacity ${theme.transitions.normal}`,
+      '@media (max-width: 768px)': {
+        top: 0,
+      }
+    },
+    sidebarPanel: {
+      position: 'fixed',
+      top: MAIN_HEADER_HEIGHT,
+      right: 0,
+      height: `calc(100vh - ${MAIN_HEADER_HEIGHT})`,
+      backgroundColor: activeColors.white,
+      boxShadow: theme.shadows.lg,
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      transition: `transform ${theme.transitions.normal}`,
+      '@media (max-width: 768px)': {
+        top: 0,
+        height: '100vh',
+      }
+    },
+    sidebarHeader: {
+      padding: theme.spacing.lg,
+      borderBottom: `1px solid ${activeColors.lightGray}`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: activeColors.secondary,
+      color: activeColors.textLight,
+    },
+    sidebarTitle: {
+      fontSize: '1.25rem',
+      fontWeight: 600,
+      margin: 0,
+    },
+    sidebarClose: {
+      backgroundColor: 'transparent',
+      border: 'none',
+      color: activeColors.textLight,
+      fontSize: '1.25rem',
+      cursor: 'pointer',
+      padding: theme.spacing.sm,
+      borderRadius: theme.borderRadius.circle,
+      ':hover': {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)'
+      },
+    },
+    sidebarBody: {
+      flex: 1,
+      overflowY: 'auto',
+      padding: theme.spacing.md,
+      backgroundColor: activeColors.white,
+    },
+    chapterItem: {
+      padding: theme.spacing.md,
+      borderBottom: `1px solid ${activeColors.lightGray}`,
+      cursor: 'pointer',
+      transition: theme.transitions.normal,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      ':hover': {
+        backgroundColor: activeColors.lightGray
+      },
+    },
+    activeChapter: {
+      backgroundColor: activeColors.primaryLight,
+      color: activeColors.white
+    },
+    chapterTitle: {
+      fontWeight: 200,
+      fontSize: '1rem',
+      margin: 0,
+    },
+    lessonItem: {
+      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+      borderBottom: `1px solid ${activeColors.lightGray}`,
+      cursor: 'pointer',
+      transition: theme.transitions.normal,
+      display: 'flex',
+      alignItems: 'center',
+      ':hover': {
+        backgroundColor: activeColors.lightGray
+      },
+    },
+    activeLesson: {
+      backgroundColor: activeColors.primaryLight,
+      color: activeColors.white
+    },
+    lockedLesson: {
+      opacity: 0.7,
+      cursor: 'not-allowed',
+      backgroundColor: activeColors.lightGray,
+      ':hover': {
+        backgroundColor: activeColors.lightGray
+      }
+    },
+    lessonIcon: {
+      fontSize: '1.1rem',
+      marginRight: theme.spacing.md,
+      color: activeColors.gray,
+    },
+    activeIcon: {
+      color: activeColors.white
+    },
+    completedIcon: {
+      color: activeColors.success
+    },
+    lockedIcon: {
+      color: activeColors.danger
+    },
+    lessonDetails: {
+      flex: 1,
+      minWidth: 0
+    },
+    lessonName: {
+      fontWeight: 500,
+      fontSize: '0.95rem',
+      marginBottom: theme.spacing.xs,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+    },
+    lessonMeta: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      fontSize: '0.75rem',
+      color: activeColors.gray,
+    },
+    lessonStatus: {
+      marginLeft: theme.spacing.md,
+      fontSize: '1.1rem',
+    },
+    examResult: {
+      backgroundColor: activeColors.success,
+      color: activeColors.white,
+      padding: theme.spacing.lg,
+      borderRadius: theme.borderRadius.md,
+      marginBottom: theme.spacing.lg,
+    },
+    examStats: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: theme.spacing.lg,
+      marginBottom: theme.spacing.md,
+    },
+    examStat: {
+      flex: '1 1 150px',
+    },
+    examStatLabel: {
+      fontSize: '0.8rem',
+      color: activeColors.textLight,
+      opacity: 0.9,
+      marginBottom: theme.spacing.xs,
+    },
+    examStatValue: {
+      fontSize: '1.2rem',
+      fontWeight: 600,
+    },
+    questionItem: {
+      marginBottom: theme.spacing.lg,
+      paddingBottom: theme.spacing.md,
+      borderBottom: `1px solid ${activeColors.lightGray}`,
+    },
+    questionHeader: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      marginBottom: theme.spacing.md,
+    },
+    questionNumber: {
+      backgroundColor: activeColors.primary,
+      color: activeColors.white,
+      width: '28px',
+      height: '28px',
+      borderRadius: theme.borderRadius.circle,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: theme.spacing.sm,
+      flexShrink: 0,
+      fontSize: '0.9rem',
+    },
+    questionText: {
+      margin: 0,
+      flex: 1,
+      fontSize: '1rem',
+      lineHeight: 1.5,
+    },
+    optionsGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+      gap: theme.spacing.sm,
+      marginLeft: '38px',
+    },
+    optionItem: {
+      padding: theme.spacing.md,
+      borderRadius: theme.borderRadius.md,
+      border: `1px solid ${activeColors.lightGray}`,
+      cursor: 'pointer',
+      transition: theme.transitions.normal,
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      ':hover': {
+        borderColor: activeColors.primary,
+        backgroundColor: activeColors.lightGray
+      },
+    },
+    selectedOption: {
+      backgroundColor: activeColors.primaryLight,
+      borderColor: activeColors.primary,
+      color: activeColors.white
+    },
+    optionMarker: {
+      width: '24px',
+      height: '24px',
+      borderRadius: theme.borderRadius.circle,
+      backgroundColor: activeColors.lightGray,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '0.8rem',
+      fontWeight: 600,
+      color: activeColors.textDark,
+      flexShrink: 0,
+    },
+    selectedMarker: {
+      backgroundColor: activeColors.primary,
+      color: activeColors.white
+    },
+    optionText: {
+      flex: 1,
+      fontSize: '0.9rem',
+    },
+    questionMeta: {
+      fontSize: '0.75rem',
+      color: activeColors.gray,
+      marginTop: theme.spacing.sm,
+      marginLeft: '38px',
     }
-    
-    // Load volume preference
-    const savedVolume = localStorage.getItem('audioVolume');
-    if (savedVolume) {
-      setVolume(parseInt(savedVolume));
-    }
-  }, [id]);
-
-  // Save user progress to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem(`courseProgress_${id}`, JSON.stringify(userProgress));
-  }, [id, userProgress]);
-
-  // Save volume preference
-  useEffect(() => {
-    localStorage.setItem('audioVolume', volume.toString());
-  }, [volume]);
+  };
 
   useEffect(() => {
     const fetchContent = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const token = localStorage.getItem("token");
+        if (!token) throw new Error("Token not found.");
         const response = await fetch(`https://learnly-backend-05ix.onrender.com/courses/${id}/content`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` }
         });
-        
-        if (!response.ok) throw new Error("Failed to fetch content");
-        
+        if (!response.ok) throw new Error(`Fetch error: ${response.statusText}`);
         const data = await response.json();
         if (data.success) {
-          setChapters(data.data);
-          const answers = {};
-          data.data.forEach((chapter, cIdx) => {
-            if (chapter.exam) {
+          const fetchedChapters = data.data || [];
+          setChapters(fetchedChapters);
+          const initialExamAnswers = {};
+          fetchedChapters.forEach((chapter, cIdx) => {
+            if (chapter.exam?.examQuestions) {
               chapter.exam.examQuestions.forEach((_, qIdx) => {
-                answers[`${cIdx}-${qIdx}`] = "";
+                initialExamAnswers[`${cIdx}-${qIdx}`] = "";
               });
             }
           });
-          setExamAnswers(answers);
-          
-          if (data.data.length > 0) {
-            setExpandedChapters({ [0]: true });
-            // Auto-select first lesson if none selected
-            if (!selectedLesson) {
-              setSelectedLesson({ chapter: 0, lesson: 0 });
+          setExamAnswers(initialExamAnswers);
+          if (fetchedChapters.length > 0 && !selectedLesson) {
+            const firstChapter = fetchedChapters[0];
+            if (firstChapter.lessons?.length > 0) {
+              setSelectedLesson({ chapterIndex: 0, lessonIndex: 0, type: 'lesson' });
+            } else if (firstChapter.exam) {
+              setSelectedLesson({ chapterIndex: 0, type: 'exam' });
             }
           }
         } else {
-          setError(data.message);
+          throw new Error(data.message || "Failed to fetch content");
         }
       } catch (err) {
+        console.error("Fetch content error:", err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
     fetchContent();
+  }, [id, selectedLesson]);
+
+  useEffect(() => {
+    const savedProgress = localStorage.getItem(`courseProgress_${id}`);
+    if (savedProgress) {
+      try {
+        const parsedProgress = JSON.parse(savedProgress);
+        setUserProgress({
+          completedLessons: parsedProgress.completedLessons || [],
+          attemptedExams: parsedProgress.attemptedExams || {},
+        });
+      } catch (e) {
+        console.error("Error parsing progress:", e);
+      }
+    }
   }, [id]);
 
-  // Clean up audio on unmount
   useEffect(() => {
-    return () => {
+    if (userProgress.completedLessons.length > 0 || Object.keys(userProgress.attemptedExams).length > 0) {
+      localStorage.setItem(`courseProgress_${id}`, JSON.stringify(userProgress));
+    }
+  }, [id, userProgress]);
+
+  useEffect(() => {
+    if (!selectedLesson || selectedLesson.type !== 'lesson' || !chapters.length) {
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current = null;
+        audioRef.current.src = '';
+      }
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+      setHasUserPressedPlay(false);
+      return;
+    }
+    const lesson = chapters[selectedLesson.chapterIndex]?.lessons[selectedLesson.lessonIndex];
+    const audioFiles = lesson?.audioFile;
+    if (!audioFiles || audioFiles.length === 0 || !audioFiles[currentAudioFileIndex]?.url) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+      setHasUserPressedPlay(false);
+      return;
+    }
+    const audioToPlay = audioFiles[currentAudioFileIndex];
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      setupAudioListeners(audioRef.current);
+    }
+    audioRef.current.volume = volume / 100;
+    audioRef.current.playbackRate = playbackRate;
+    if (audioRef.current.src !== audioToPlay.url) {
+      audioRef.current.src = audioToPlay.url;
+      audioRef.current.load();
+      setHasUserPressedPlay(false);
+      setIsPlaying(false);
+    }
+  }, [selectedLesson, currentAudioFileIndex, chapters, volume, playbackRate]);
+  
+  useEffect(() => {
+    const audio = audioRef.current;
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.src = '';
       }
     };
   }, []);
 
-  // Handle audio ended event
-  const handleAudioEnded = (chapterIndex, lessonIndex) => {
-    const lesson = chapters[chapterIndex]?.lessons[lessonIndex];
-    if (!lesson) return;
-    
-    // Check if this was the last audio in the lesson
-    if (lesson.audioFile && currentAudioIndex === lesson.audioFile.length - 1) {
-      // Mark lesson as complete
-      markLessonComplete(chapterIndex, lessonIndex);
-      
-      // Automatically unlock and select next lesson
-      unlockNextLesson(chapterIndex, lessonIndex);
-    } else {
-      // Play next audio in the same lesson
-      setCurrentAudioIndex(prev => prev + 1);
-    }
-  };
-
-  // Unlock and select the next lesson
-  const unlockNextLesson = (chapterIndex, lessonIndex) => {
-    const chapter = chapters[chapterIndex];
-    const nextLessonIndex = lessonIndex + 1;
-    
-    // Check if there's another lesson in the same chapter
-    if (nextLessonIndex < chapter.lessons.length) {
-      setSelectedLesson({ chapter: chapterIndex, lesson: nextLessonIndex });
-      return;
-    }
-    
-    // Check if there's another chapter
-    if (chapterIndex < chapters.length - 1) {
-      const nextChapter = chapters[chapterIndex + 1];
-      if (nextChapter.lessons.length > 0) {
-        setSelectedLesson({ chapter: chapterIndex + 1, lesson: 0 });
-        // Expand next chapter in sidebar
-        setExpandedChapters(prev => ({ ...prev, [chapterIndex + 1]: true }));
+  const setupAudioListeners = (audio) => {
+    const timeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+      if (audio.duration > 0 && !isNaN(audio.duration)) {
+        setDuration(audio.duration);
       }
-    }
-  };
-
-  const toggleChapter = (index) => {
-    setExpandedChapters(prev => ({
-      ...prev,
-      [index]: !prev[index]
-    }));
-  };
-
-  const handleAnswerSelect = (questionKey, answer) => {
-    setExamAnswers(prev => ({
-      ...prev,
-      [questionKey]: answer
-    }));
-  };
-
-  const submitExam = async () => {
-    if (!selectedLesson || selectedLesson.type !== 'exam') return;
-    
-    const chapter = chapters[selectedLesson.chapter];
-    const exam = chapter.exam;
-    
-    const unansweredQuestions = exam.examQuestions.filter((_, i) => {
-      const key = `${selectedLesson.chapter}-${i}`;
-      return !examAnswers[key];
-    });
-
-    if (unansweredQuestions.length > 0) {
-      setSubmissionStatus({
-        status: "error",
-        message: `Please answer all questions. ${unansweredQuestions.length} unanswered.`
-      });
-      return;
-    }
-
-    const answers = exam.examQuestions.map((q, index) => {
-      const questionKey = `${selectedLesson.chapter}-${index}`;
-      return {
-        question: q.question,
-        selectedAnswer: examAnswers[questionKey] || ""
-      };
-    });
-
-    try {
-      setSubmissionStatus({ status: "submitting", message: "Submitting exam..." });
-      
-      const token = localStorage.getItem("token");
-      const response = await fetch("https://learnly-backend-05ix.onrender.com/user/exam/answer-submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          examId: exam.examId,
-          courseId: id,
-          chapterTitle: chapter.title,
-          answers
-        })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setUserProgress(prev => ({
-          ...prev,
-          attemptedExam: true,
-          examScore: data.data
-        }));
-        setSubmissionStatus({ 
-          status: "success", 
-          message: "Exam submitted successfully!",
-          data: data.data
-        });
-      } else {
-        throw new Error(data.message || "Exam submission failed");
+    };
+    const ended = () => {
+      setIsPlaying(false);
+      if (selectedLesson?.type === 'lesson' && chapters.length) {
+        const lesson = chapters[selectedLesson.chapterIndex]?.lessons[selectedLesson.lessonIndex];
+        if (lesson?.audioFile && currentAudioFileIndex < lesson.audioFile.length - 1) {
+          setCurrentAudioFileIndex(prev => prev + 1);
+        } else {
+          markLessonComplete(selectedLesson.chapterIndex, selectedLesson.lessonIndex);
+        }
       }
-    } catch (error) {
-      setSubmissionStatus({ 
-        status: "error", 
-        message: error.message || "Failed to submit exam" 
-      });
-    }
+    };
+    const play = () => setIsPlaying(true);
+    const pause = () => setIsPlaying(false);
+    const error = () => {
+      console.error("Audio error:", audio.error);
+      setIsPlaying(false);
+    };
+    audio.addEventListener('timeupdate', timeUpdate);
+    audio.addEventListener('loadedmetadata', timeUpdate);
+    audio.addEventListener('ended', ended);
+    audio.addEventListener('play', play);
+    audio.addEventListener('pause', pause);
+    audio.addEventListener('error', error);
   };
-
-  const handleAudioPlay = (audioUrl, audioName, chapterIndex, lessonIndex, audioIndex) => {
-    // If playing the same audio, just toggle play/pause
-    if (audioRef.current && audioRef.current.src === audioUrl && isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-      return;
-    }
-    
-    // New audio to play
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    
-    audioRef.current = new Audio(audioUrl);
-    audioRef.current.volume = volume / 100;
-    audioRef.current.playbackRate = playbackRate;
-    
-    // Set up event listeners
-    audioRef.current.addEventListener('loadedmetadata', () => {
-      setDuration(audioRef.current.duration);
-    });
-    
-    audioRef.current.addEventListener('timeupdate', () => {
-      setCurrentTime(audioRef.current.currentTime);
-      setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
-    });
-    
-    audioRef.current.addEventListener('ended', () => {
-      setIsPlaying(false);
-      handleAudioEnded(chapterIndex, lessonIndex);
-    });
-    
-    audioRef.current.addEventListener('play', () => {
-      setIsPlaying(true);
-    });
-    
-    audioRef.current.addEventListener('pause', () => {
-      setIsPlaying(false);
-    });
-    
-    audioRef.current.play();
-    setIsPlaying(true);
-    
-    // Update current audio index
-    setCurrentAudioIndex(audioIndex);
-  };
-
+  
   const playPause = () => {
-    if (!audioRef.current) return;
-    
+    if (!audioRef.current || !audioRef.current.src) {
+      if (selectedLesson && selectedLesson.type === 'lesson' && chapters.length) {
+        const lesson = chapters[selectedLesson.chapterIndex]?.lessons[selectedLesson.lessonIndex];
+        const audioFile = lesson?.audioFile?.[currentAudioFileIndex];
+        if (audioFile?.url) {
+          if (!audioRef.current) {
+            audioRef.current = new Audio();
+            setupAudioListeners(audioRef.current);
+          }
+          audioRef.current.src = audioFile.url;
+          audioRef.current.volume = volume / 100;
+          audioRef.current.playbackRate = playbackRate;
+          audioRef.current.play()
+            .then(() => {
+              setIsPlaying(true);
+              setHasUserPressedPlay(true);
+            })
+            .catch(e => console.error("Play failed:", e));
+        }
+      }
+      return;
+    }
     if (isPlaying) {
       audioRef.current.pause();
     } else {
-      audioRef.current.play();
+      audioRef.current.play()
+        .then(() => {
+          setIsPlaying(true);
+          setHasUserPressedPlay(true);
+        })
+        .catch(e => console.error("Play failed:", e));
     }
   };
 
   const skipForward = () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !duration) return;
     audioRef.current.currentTime = Math.min(audioRef.current.currentTime + 10, duration);
   };
 
   const skipBackward = () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !duration) return;
     audioRef.current.currentTime = Math.max(audioRef.current.currentTime - 10, 0);
   };
 
+  const skipToAudio = (index) => {
+    if (!selectedLesson || selectedLesson.type !== 'lesson' || !chapters.length) return;
+    const lesson = chapters[selectedLesson.chapterIndex]?.lessons[selectedLesson.lessonIndex];
+    if (!lesson?.audioFile || index < 0 || index >= lesson.audioFile.length) return;
+    setCurrentAudioFileIndex(index);
+    setHasUserPressedPlay(false);
+    setIsPlaying(false);
+  };
+
   const skipToNextAudio = () => {
-    if (!selectedLesson || selectedLesson.type === 'exam') return;
-    
-    const chapterIndex = selectedLesson.chapter;
-    const lessonIndex = selectedLesson.lesson;
-    const lesson = chapters[chapterIndex]?.lessons[lessonIndex];
-    
-    if (!lesson || !lesson.audioFile) return;
-    
-    const nextIndex = currentAudioIndex + 1;
-    if (nextIndex < lesson.audioFile.length) {
-      const nextAudio = lesson.audioFile[nextIndex];
-      handleAudioPlay(nextAudio.url, nextAudio.name, chapterIndex, lessonIndex, nextIndex);
-    } else {
-      // End of lesson, mark as complete
-      markLessonComplete(chapterIndex, lessonIndex);
-      unlockNextLesson(chapterIndex, lessonIndex);
+    if (!selectedLesson || selectedLesson.type !== 'lesson' || !chapters.length) return;
+    const lesson = chapters[selectedLesson.chapterIndex]?.lessons[selectedLesson.lessonIndex];
+    if (!lesson?.audioFile) return;
+    if (currentAudioFileIndex < lesson.audioFile.length - 1) {
+      skipToAudio(currentAudioFileIndex + 1);
     }
   };
 
   const skipToPrevAudio = () => {
-    if (!selectedLesson || selectedLesson.type === 'exam') return;
-    
-    const chapterIndex = selectedLesson.chapter;
-    const lessonIndex = selectedLesson.lesson;
-    const lesson = chapters[chapterIndex]?.lessons[lessonIndex];
-    
-    if (!lesson || !lesson.audioFile) return;
-    
-    const prevIndex = Math.max(currentAudioIndex - 1, 0);
-    if (prevIndex !== currentAudioIndex) {
-      const prevAudio = lesson.audioFile[prevIndex];
-      handleAudioPlay(prevAudio.url, prevAudio.name, chapterIndex, lessonIndex, prevIndex);
-    } else {
-      // Restart current audio
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play();
-      }
+    if (!selectedLesson || selectedLesson.type !== 'lesson' || !chapters.length) return;
+    const lesson = chapters[selectedLesson.chapterIndex]?.lessons[selectedLesson.lessonIndex];
+    if (!lesson?.audioFile) return;
+    if (currentAudioFileIndex > 0) {
+      skipToAudio(currentAudioFileIndex - 1);
     }
   };
 
   const handleSeek = (e) => {
-    if (!audioRef.current) return;
-    
-    const progressBar = progressBarRef.current;
-    const rect = progressBar.getBoundingClientRect();
-    const percent = (e.clientX - rect.left) / rect.width;
-    const newTime = percent * duration;
-    
-    audioRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
+    if (!audioRef.current || !duration) return;
+    const bar = progressBarRef.current;
+    if (!bar) return;
+    const rect = bar.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const newTime = (x / rect.width) * duration;
+    audioRef.current.currentTime = Math.max(0, Math.min(newTime, duration));
   };
 
-  const handleVolumeChange = (e) => {
-    const newVolume = parseInt(e.target.value);
+  const handleVolumeSeek = (e) => {
+    const bar = volumeBarRef.current;
+    if (!bar) return;
+    const rect = bar.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const newVolume = Math.round(Math.max(0, Math.min(x / rect.width, 1)) * 100);
     setVolume(newVolume);
-    if (audioRef.current) {
-      audioRef.current.volume = newVolume / 100;
-    }
   };
 
   const changePlaybackRate = (rate) => {
@@ -370,22 +1161,43 @@ export default function CourseContent() {
   };
 
   const markLessonComplete = (chapterIndex, lessonIndex) => {
-    const lessonKey = `${chapterIndex}-${lessonIndex}`;
-    
-    // Check if already completed
-    if (userProgress.completedLessons.includes(lessonKey)) {
+    const key = `${chapterIndex}-${lessonIndex}`;
+    if (userProgress.completedLessons.includes(key)) {
+      unlockNextContent(chapterIndex, lessonIndex);
       return;
     }
-    
     setUserProgress(prev => ({
       ...prev,
-      completedLessons: [...prev.completedLessons, lessonKey]
+      completedLessons: [...prev.completedLessons, key]
     }));
-    
-    // Stop audio if playing
-    if (audioRef.current) {
+    if (audioRef.current && selectedLesson?.chapterIndex === chapterIndex &&
+      selectedLesson.lessonIndex === lessonIndex && selectedLesson?.type === 'lesson') {
       audioRef.current.pause();
-      setIsPlaying(false);
+    }
+    unlockNextContent(chapterIndex, lessonIndex);
+  };
+
+  const unlockNextContent = (completedChapterIndex, completedLessonIndex = -1) => {
+    if (!chapters || !chapters.length) return;
+    const currentChapter = chapters[completedChapterIndex];
+    if (!currentChapter) return;
+    if (completedLessonIndex !== -1 && completedLessonIndex < currentChapter.lessons.length - 1) {
+      handleSelectContent(completedChapterIndex, completedLessonIndex + 1, 'lesson');
+      return;
+    }
+    if (completedLessonIndex === currentChapter.lessons.length - 1 && currentChapter.exam) {
+      handleSelectContent(completedChapterIndex, undefined, 'exam');
+      return;
+    }
+    const nextChapterIndex = completedChapterIndex + 1;
+    if (nextChapterIndex < chapters.length) {
+      const nextChapter = chapters[nextChapterIndex];
+      if (nextChapter.lessons?.length > 0) {
+        handleSelectContent(nextChapterIndex, 0, 'lesson');
+      } else if (nextChapter.exam) {
+        handleSelectContent(nextChapterIndex, undefined, 'exam');
+      }
+      setSelectedChapterIndex(nextChapterIndex);
     }
   };
 
@@ -393,2004 +1205,799 @@ export default function CourseContent() {
     return userProgress.completedLessons.includes(`${chapterIndex}-${lessonIndex}`);
   };
 
+  const hasAttemptedExam = (chapterIndex) => {
+    return userProgress.attemptedExams[chapterIndex]?.attempted || false;
+  };
+
+  const getExamResult = (chapterIndex) => {
+    return userProgress.attemptedExams[chapterIndex]?.result;
+  };
+
   const isLessonLocked = (chapterIndex, lessonIndex) => {
-    // First lesson is always unlocked
-    if (chapterIndex === 0 && lessonIndex === 0) {
-      return false;
-    }
-    
-    // Check if previous lesson is completed
+    if (!chapters || !chapters.length) return true;
+    if (chapterIndex === 0 && lessonIndex === 0) return false;
     if (lessonIndex > 0) {
       return !isLessonCompleted(chapterIndex, lessonIndex - 1);
     }
-    
-    // For first lesson of subsequent chapters, check last lesson of previous chapter
-    if (chapterIndex > 0) {
-      const prevChapter = chapters[chapterIndex - 1];
+    const prevChapter = chapters[chapterIndex - 1];
+    if (!prevChapter) return true;
+    if (prevChapter.exam) {
+      return !hasAttemptedExam(chapterIndex - 1);
+    }
+    if (prevChapter.lessons?.length > 0) {
       return !isLessonCompleted(chapterIndex - 1, prevChapter.lessons.length - 1);
     }
-    
     return false;
   };
 
   const isExamAvailable = (chapterIndex) => {
+    if (!chapters || chapterIndex >= chapters.length) return false;
     const chapter = chapters[chapterIndex];
-    if (!chapter.exam) return false;
-    
-    // Check if all lessons in this chapter are completed
-    const allLessonsCompleted = chapter.lessons.every((_, lessonIndex) => 
+    if (!chapter || !chapter.exam) return false;
+    return chapter.lessons?.every((_, lessonIndex) =>
       isLessonCompleted(chapterIndex, lessonIndex)
-    );
-    
-    return allLessonsCompleted;
+    ) ?? true;
   };
 
-  const formatTime = (seconds) => {
-    if (isNaN(seconds)) return "0:00";
-    
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  const handleAnswerSelect = (questionKey, answer) => {
+    const chapterIndex = parseInt(questionKey.split('-')[0]);
+    if (submissionStatus?.status === "success" &&
+      selectedLesson?.chapterIndex === chapterIndex &&
+      !userProgress.attemptedExams[chapterIndex]?.allowRetake) {
+      return;
+    }
+    setExamAnswers(prev => ({ ...prev, [questionKey]: answer }));
   };
 
-  const renderMediaFiles = (lesson, chapterIndex, lessonIndex) => {
-    const currentAudio = lesson.audioFile?.[currentAudioIndex];
-    
+  const submitExam = async () => {
+    if (!selectedLesson || selectedLesson.type !== 'exam' || !chapters.length) return;
+    const chapterIndex = selectedLesson.chapterIndex;
+    const chapter = chapters[chapterIndex];
+    if (!chapter?.exam?.examQuestions) return;
+    const exam = chapter.exam;
+    if (exam.examQuestions.some((_, i) => !examAnswers[`${chapterIndex}-${i}`])) {
+      setSubmissionStatus({
+        status: "error",
+        message: `Please answer all ${exam.examQuestions.length} questions.`
+      });
+      return;
+    }
+    const payload = exam.examQuestions.map((question, i) => ({
+      question: question.question,
+      selectedAnswer: examAnswers[`${chapterIndex}-${i}`]
+    }));
+    try {
+      setSubmissionStatus({ status: "submitting" });
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Token missing.");
+      const response = await fetch("https://learnly-backend-05ix.onrender.com/user/exam/answer-submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          examId: exam.examId || exam._id,
+          courseId: id,
+          chapterTitle: chapter.title,
+          answers: payload
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Submission failed.");
+      }
+      setUserProgress(prev => ({
+        ...prev,
+        attemptedExams: {
+          ...prev.attemptedExams,
+          [chapterIndex]: {
+            attempted: true,
+            score: data.data.obtainedMarks,
+            result: data.data
+          }
+        }
+      }));
+      setSubmissionStatus({
+        status: "success",
+        data: data.data
+      });
+    } catch (err) {
+      console.error("Exam submission error:", err);
+      setSubmissionStatus({
+        status: "error",
+        message: err.message
+      });
+    }
+  };
+
+  const handleSelectContent = (chapterIndex, lessonIndex, type) => {
+    setSelectedLesson({ chapterIndex, lessonIndex, type });
+    if (type === 'lesson') {
+      setCurrentAudioFileIndex(0);
+      setHasUserPressedPlay(false);
+    } else if (type === 'exam') {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        setIsPlaying(false);
+      }
+      setSubmissionStatus(null);
+    }
+    setIsModalOpen(false);
+  };
+
+  const openContentModal = () => {
+    setIsModalOpen(true);
+    if (selectedLesson && chapters.length > selectedLesson.chapterIndex) {
+      setSelectedChapterIndex(selectedLesson.chapterIndex);
+    } else if (chapters.length > 0) {
+      setSelectedChapterIndex(0);
+    }
+  };
+
+  const currentChapter = selectedLesson && chapters.length > selectedLesson.chapterIndex ?
+    chapters[selectedLesson.chapterIndex] : null;
+  const currentLesson = selectedLesson?.type === 'lesson' && currentChapter ?
+    currentChapter.lessons?.[selectedLesson.lessonIndex] : null;
+  const currentExam = selectedLesson?.type === 'exam' && currentChapter ?
+    currentChapter.exam : null;
+  const isAudioPlayerVisible = selectedLesson?.type === 'lesson' &&
+    currentLesson?.audioFile?.length > 0;
+  const audioReady = audioRef.current && duration > 0 && !isNaN(duration) && hasUserPressedPlay;
+  const getHeaderTitle = () => {
+    if (!selectedLesson || !chapters.length) return "Course Details";
+    if (selectedLesson.type === 'lesson') return currentLesson?.lessonname || "Lesson";
+   // if (selectedLesson.type === 'exam') return currentExam?.examinationName || "Exam";
+
+  };
+
+  if (loading) {
     return (
-      <div className="media-container">
-        {lesson.description && (
-          <div className="lesson-description">
-            <h3 className="description-title">Lesson Overview</h3>
-            <p className="description-text">{lesson.description}</p>
-          </div>
-        )}
-        
-        {lesson.audioFile?.length > 0 && (
-          <div className="audio-section">
-            <h4 className="section-title">
-              <FaHeadphones className="icon" /> Audio Lectures
-            </h4>
-            <div className="audio-player">
-              <div className="player-header">
-                <div className="player-title">
-                  <div className="now-playing">Now Playing</div>
-                  <div className="audio-name">{currentAudio?.name || "Select audio"}</div>
-                </div>
-                <div className="audio-meta">
-                  <span className="duration">
-                    <IoMdTime /> {formatTime(duration)}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="player-controls">
-                <div className="progress-container" ref={progressBarRef} onClick={handleSeek}>
-                  <div 
-                    className="progress-bar" 
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                  <div 
-                    className="progress-thumb" 
-                    style={{ left: `${progress}%` }}
-                  ></div>
-                </div>
-                
-                <div className="time-info">
-                  <div className="current-time">{formatTime(currentTime)}</div>
-                  <div className="total-time">{formatTime(duration)}</div>
-                </div>
-                
-                <div className="control-buttons">
-                  <button className="control-btn" onClick={skipToPrevAudio}>
-                    <FaStepBackward />
-                  </button>
-                  <button className="control-btn" onClick={skipBackward}>
-                    <FaBackward />
-                  </button>
-                  <button className="play-btn" onClick={playPause}>
-                    {isPlaying ? <FaPause /> : <FaPlay />}
-                  </button>
-                  <button className="control-btn" onClick={skipForward}>
-                    <FaForward />
-                  </button>
-                  <button className="control-btn" onClick={skipToNextAudio}>
-                    <FaStepForward />
-                  </button>
-                  
-                  <div className="volume-control">
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100" 
-                      value={volume}
-                      onChange={handleVolumeChange}
-                      className="volume-slider"
-                    />
-                  </div>
-                  
-                  <div className="playback-rate">
-                    <button 
-                      className="rate-btn" 
-                      onClick={() => setShowPlaybackOptions(!showPlaybackOptions)}
-                    >
-                      {playbackRate}x
-                    </button>
-                    {showPlaybackOptions && (
-                      <div className="rate-options">
-                        {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map(rate => (
-                          <button
-                            key={rate}
-                            className={`rate-option ${playbackRate === rate ? 'active' : ''}`}
-                            onClick={() => changePlaybackRate(rate)}
-                          >
-                            {rate}x
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="audio-list">
-                {lesson.audioFile.map((audio, i) => (
-                  <div 
-                    key={i} 
-                    className={`audio-item ${currentAudioIndex === i ? 'active' : ''}`}
-                    onClick={() => handleAudioPlay(audio.url, audio.name, chapterIndex, lessonIndex, i)}
-                  >
-                    <div className="audio-info">
-                      <div className="audio-name">{audio.name}</div>
-                      <div className="audio-meta">
-                        <span className="duration">
-                          <IoMdTime /> {formatTime(audio.duration || 300)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="play-indicator">
-                      {currentAudioIndex === i && isPlaying ? <FaPause /> : <FaPlay />}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {lesson.pdfFile?.length > 0 && (
-          <div className="pdf-section">
-            <h4 className="section-title">
-              <FaFilePdf className="icon" /> Study Materials
-            </h4>
-            <div className="pdf-grid">
-              {lesson.pdfFile.map((pdf, i) => (
-                <a 
-                  key={i} 
-                  href={pdf.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="pdf-card"
-                >
-                  <div className="pdf-icon">
-                    <FaFilePdf />
-                  </div>
-                  <div className="pdf-details">
-                    <div className="pdf-name">{pdf.name}</div>
-                    <div className="pdf-meta">
-                      <span className="pages">{pdf.pages || 12} pages</span>
-                    </div>
-                  </div>
-                  <div className="download-badge">Download</div>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="lesson-actions">
-          {!isLessonCompleted(chapterIndex, lessonIndex) && (
-            <button 
-              className="complete-lesson-button"
-              onClick={() => markLessonComplete(chapterIndex, lessonIndex)}
-            >
-              Mark as Complete
-            </button>
-          )}
-
-          {isLessonCompleted(chapterIndex, lessonIndex) && (
-            <div className="completion-badge">
-              <FaCheckCircle /> Lesson Completed
-            </div>
-          )}
-          
-          {lesson.audioFile?.length > 1 && (
-            <div className="audio-navigation">
-              <button 
-                className="nav-button prev"
-                onClick={skipToPrevAudio}
-                disabled={currentAudioIndex === 0}
-              >
-                Previous Audio
-              </button>
-              <button 
-                className="nav-button next"
-                onClick={skipToNextAudio}
-                disabled={currentAudioIndex === lesson.audioFile.length - 1}
-              >
-                Next Audio
-              </button>
-            </div>
-          )}
+      <div style={styles.appContainer}>
+        <div style={styles.header}>
+          <div style={styles.headerTitle}>Loading...</div>
+          <button style={styles.contentButton} disabled>
+            <MdMenuBook /> Content
+          </button>
+        </div>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: 'calc(100vh - 60px)',
+          backgroundColor: activeColors.light
+        }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: `4px solid ${activeColors.primaryLight}`,
+            borderTop: `4px solid ${activeColors.primary}`,
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            marginBottom: theme.spacing.md
+          }}></div>
+          <div style={{ fontSize: '1rem', color: activeColors.gray }}>Loading Course Content...</div>
         </div>
       </div>
     );
-  };
+  }
 
-  if (loading) return (
-    <div className="loading-container">
-      <div className="spinner"></div>
-      <div>Loading course content...</div>
-    </div>
-  );
-  
-  if (error) return (
-    <div className="error-container">
-      <div className="error-icon">!</div>
-      <div className="error-message">Error: {error}</div>
-      <button className="retry-button" onClick={() => window.location.reload()}>
-        Try Again
-      </button>
-    </div>
-  );
+  if (error) {
+    return (
+      <div style={styles.appContainer}>
+        <div style={styles.header}>
+          <div style={styles.headerTitle}>Error</div>
+          <button style={styles.contentButton} disabled>
+            <MdMenuBook /> Content
+          </button>
+        </div>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: 'calc(100vh - 60px)',
+          padding: theme.spacing.lg,
+          textAlign: 'center',
+          backgroundColor: activeColors.light
+        }}>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            borderRadius: '50%',
+            backgroundColor: activeColors.danger,
+            color: activeColors.white,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.5rem',
+            marginBottom: theme.spacing.md
+          }}>
+            !
+          </div>
+          <h3 style={{ marginBottom: theme.spacing.sm, fontSize: '1.5rem', color: activeColors.textDark }}>
+            Error Loading Content
+          </h3>
+          <p style={{ marginBottom: theme.spacing.lg, color: activeColors.gray, fontSize: '0.95rem' }}>
+            {error}
+          </p>
+          <button
+            style={{ ...styles.button, ...styles.primaryButton }}
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="course-content-container">
-      {/* Mobile Sidebar Toggle */}
-      <button 
-        className="sidebar-toggle"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-      >
-        {sidebarOpen ? '×' : '☰'}
-      </button>
-
-      {/* Sidebar */}
-      <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-header">
-          {/* <div className="course-title">Advanced React Development</div>
-          <div className="stats">
-            <div className="progress-container">
-              <div className="progress-bar" style={{ width: '35%' }}></div>
-            </div>
-            <div className="progress-text">35% Complete</div>
-          </div> */}
+    <div style={styles.appContainer}>
+      <div style={styles.header}>
+        <div style={styles.headerLeft}>
+          <button
+            style={styles.headerButton}
+            onClick={() => navigate(-1)}
+            title="Go back"
+          >
+            <FaArrowLeft />
+          </button>
+          <div style={styles.headerTitle}>{getHeaderTitle()}</div>
         </div>
 
-        <div className="chapter-list">
-          {chapters.map((chapter, idx) => (
-            <div key={idx} className="chapter-item">
-              <div 
-                className={`chapter-header ${expandedChapters[idx] ? 'expanded' : ''}`}
-                onClick={() => toggleChapter(idx)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
+          <button
+            style={styles.contentButton}
+            onClick={openContentModal}
+          >
+            <MdMenuBook /> Course Content
+          </button>
+
+          <button
+            style={styles.themeToggleButton}
+            onClick={toggleTheme}
+            title={`Switch to ${themeMode === 'light' ? 'Dark' : 'Light'} Mode`}
+          >
+            {themeMode === 'light' ? <FaMoon /> : <FaSun />}
+          </button>
+        </div>
+      </div>
+
+      {isAudioPlayerVisible && (
+        <div style={styles.audioPlayer}>
+          <div style={styles.playerRow}>
+            <div style={styles.playerInfo}>
+              <div style={styles.audioTitle}>
+                {currentLesson.audioFile?.[currentAudioFileIndex]?.name || "Audio Track"}
+              </div>
+              <div style={styles.audioSubtitle}>
+                {currentChapter?.title} • {currentLesson.lessonname}
+              </div>
+            </div>
+            <div style={styles.volumeControl}>
+              <button
+                style={{ ...styles.controlButton, ...(!audioReady ? { opacity: 0.5, cursor: 'not-allowed' } : {}) }}
+                onClick={() => setVolume(v => v > 0 ? 0 : 80)}
+                disabled={!audioReady}
+                title={volume === 0 ? "Unmute" : "Mute"}
               >
-                <div className="chevron">
-                  {expandedChapters[idx] ? <FaChevronDown /> : <FaChevronRight />}
+                {volume === 0 ? <FaVolumeMute /> : <FaVolumeUp />}
+              </button>
+              <div
+                style={styles.volumeBar}
+                ref={volumeBarRef}
+                onClick={audioReady ? handleVolumeSeek : undefined}
+              >
+                <div style={{ ...styles.volumeFill, width: `${volume}%` }}></div>
+                {audioReady && (
+                  <div style={{ ...styles.volumeThumb, left: `${volume}%` }}></div>
+                )}
+              </div>
+            </div>
+          </div>
+          <div style={styles.progressContainer}>
+            <div style={styles.timeDisplay}>{formatTime(currentTime)}</div>
+            <div
+              style={styles.progressBar}
+              ref={progressBarRef}
+              onClick={audioReady ? handleSeek : undefined}
+            >
+              <div style={{ ...styles.progressFill, width: `${(currentTime / duration) * 100}%` }}>
+              </div>
+
+              {audioReady && (
+                <div style={{ ...styles.progressThumb, left: `${(currentTime / duration) * 100}%` }}></div>
+              )}
+            </div>
+            <div style={styles.timeDisplay}>{formatTime(duration)}</div>
+          </div>
+          <div style={styles.controlsRow}>
+            <div style={styles.controlsGroup}>
+              <button
+                style={{ ...styles.controlButton, ...(!audioReady || currentAudioFileIndex === 0 ? { opacity: 0.5, cursor: 'not-allowed' } : {}) }}
+                onClick={skipToPrevAudio}
+                disabled={!audioReady || currentAudioFileIndex === 0}
+                title="Previous Track"
+              >
+                <FaStepBackward />
+              </button>
+              <button
+                style={{ ...styles.controlButton, ...(!audioReady ? { opacity: 0.5, cursor: 'not-allowed' } : {}) }}
+                onClick={skipBackward}
+                disabled={!audioReady}
+                title="Rewind 10s"
+              >
+                <FaBackward />
+              </button>
+              <button
+                style={{ ...styles.controlButton, ...styles.playButton, ...(!currentLesson.audioFile?.[currentAudioFileIndex]?.url ? { opacity: 0.5, cursor: 'not-allowed' } : {}) }}
+                onClick={playPause}
+                disabled={!currentLesson.audioFile?.[currentAudioFileIndex]?.url}
+                title={isPlaying ? "Pause" : "Play"}
+              >
+                {isPlaying ? <FaPause /> : <FaPlay />}
+              </button>
+              <button
+                style={{ ...styles.controlButton, ...(!audioReady ? { opacity: 0.5, cursor: 'not-allowed' } : {}) }}
+                onClick={skipForward}
+                disabled={!audioReady}
+                title="Forward 10s"
+              >
+                <FaForward />
+              </button>
+              <button
+                style={{ ...styles.controlButton, ...(!audioReady || currentAudioFileIndex >= currentLesson.audioFile.length - 1 ? { opacity: 0.5, cursor: 'not-allowed' } : {}) }}
+                onClick={skipToNextAudio}
+                disabled={!audioReady || currentAudioFileIndex >= currentLesson.audioFile.length - 1}
+                title="Next Track"
+              >
+                <FaStepForward />
+              </button>
+            </div>
+            <div style={styles.playbackRate} ref={playbackOptionsRef}>
+              <button
+                style={{ ...styles.rateButton, ...(!audioReady ? { opacity: 0.5, cursor: 'not-allowed' } : {}) }}
+                onClick={() => setShowPlaybackOptions(!showPlaybackOptions)}
+                disabled={!audioReady}
+                title="Playback Speed"
+              >
+                {playbackRate.toFixed(1)}x <AiOutlineSetting size="0.9em" />
+              </button>
+              {showPlaybackOptions && audioReady && (
+                <div style={styles.rateOptions}>
+                  {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map(rate => (
+                    <div
+                      key={rate}
+                      style={{ ...styles.rateOption, ...(playbackRate === rate ? styles.activeRate : {}) }}
+                      onClick={() => changePlaybackRate(rate)}
+                    >
+                      {rate.toFixed(1)}x
+                    </div>
+                  ))}
                 </div>
-                <div className="chapter-info">
-                  <h4>Chapter {idx + 1}: {chapter.title}</h4>
-                  <div className="chapter-meta">
-                    {chapter.lessons.length} lessons • 45 min
-                  </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div style={{...styles.mainContent, ...(isModalOpen && !isMobile ? { marginRight: sidebarWidth } : {})}}>
+        {!selectedLesson && chapters.length > 0 && (
+          <div style={styles.emptyState}>
+            <div style={styles.emptyIcon}>
+              <FaBookOpen />
+            </div>
+            <h3 style={styles.emptyTitle}>Welcome to the Course!</h3>
+            <p style={styles.emptyText}>
+              Select "Course Content" in the header to begin exploring chapters and lessons.
+            </p>
+            <button
+              style={{ ...styles.button, ...styles.primaryButton }}
+              onClick={openContentModal}
+            >
+              Open Course Content
+            </button>
+          </div>
+        )}
+
+        {selectedLesson && currentLesson && (
+          <div>
+            {currentLesson.audioFile?.length > 0 && (
+              <div style={styles.card}>
+                <h2 style={styles.sectionTitle}>
+                  <FaHeadphones /> Audio ({currentLesson.audioFile.length})
+                </h2>
+                <div style={styles.audioList}>
+                  {currentLesson.audioFile.map((audio, i) => (
+                    <div
+                      key={audio.url || i}
+                      style={{ ...styles.audioItem, ...(selectedLesson?.chapterIndex === selectedLesson.chapterIndex && selectedLesson.lessonIndex === selectedLesson.lessonIndex && currentAudioFileIndex === i ? styles.activeAudioItem : {}) }}
+                      onClick={() => skipToAudio(i)}
+                    >
+                      <div style={styles.audioItemInfo}>
+                        <div style={styles.audioItemTitle}>{audio.name}</div>
+                        <div style={styles.audioItemMeta}>
+                          <IoMdTime /> {formatTime(audio.duration || 0)}
+                        </div>
+                      </div>
+                      <div style={{ color: currentAudioFileIndex === i && isPlaying ? activeColors.white : activeColors.primary }}>
+                        {selectedLesson?.chapterIndex === selectedLesson.chapterIndex && selectedLesson.lessonIndex === selectedLesson.lessonIndex && currentAudioFileIndex === i && isPlaying ? <FaPause /> : <FaPlay />}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                {chapter.exam && (
-                  <div className="exam-badge">
-                    Exam
+              </div>
+            )}
+            {currentLesson.pdfFile?.length > 0 && (
+              <div style={styles.card}>
+                <h2 style={styles.sectionTitle}>
+                  <FaFilePdf /> Materials ({currentLesson.pdfFile.length})
+                </h2>
+                <div style={styles.pdfGrid}>
+                  {currentLesson.pdfFile.map((pdf, i) => (
+                    <a
+                      key={pdf.url || i}
+                      href={pdf.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={styles.pdfCard}
+                    >
+                      <div style={styles.pdfIcon}>
+                        <FaFilePdf />
+                      </div>
+                      <div style={styles.pdfDetails}>
+                        <div style={styles.pdfTitle}>{pdf.name}</div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={styles.lessonActions}>
+              {!isLessonCompleted(selectedLesson.chapterIndex, selectedLesson.lessonIndex) ? (
+                <button
+                  style={{ ...styles.button, ...styles.primaryButton }}
+                  onClick={() => markLessonComplete(selectedLesson.chapterIndex, selectedLesson.lessonIndex)}
+                >
+                  Mark as Completed
+                </button>
+              ) : (
+                <div style={{ ...styles.badge, ...styles.successBadge }}>
+                  <FaCheckCircle /> Completed
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {selectedLesson && currentExam && (
+          <div>
+            <div style={styles.card}>
+              <h1 style={styles.lessonTitle}>{currentExam.examinationName}</h1>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing.lg, marginBottom: theme.spacing.lg }}>
+                <div>
+                  <div style={styles.examStatLabel}>Questions</div>
+                  <div style={styles.examStatValue}>{currentExam.examQuestions?.length || 0}</div>
+                </div>
+                <div>
+                  <div style={styles.examStatLabel}>Total Marks</div>
+                  <div style={styles.examStatValue}>{currentExam.totalMarks}</div>
+                </div>
+                {currentExam.passMarks != null && (
+                  <div>
+                    <div style={styles.examStatLabel}>Pass Marks</div>
+                    <div style={styles.examStatValue}>{currentExam.passMarks}</div>
                   </div>
                 )}
               </div>
-
-              {expandedChapters[idx] && (
-                <div className="lesson-list">
-                  {chapter.lessons.map((lesson, lidx) => {
-                    const isActive = selectedLesson?.chapter === idx && 
-                                    selectedLesson?.lesson === lidx;
-                    return (
-                      <div 
-                        key={lidx} 
-                        className={`lesson-item ${isActive ? 'active' : ''}
-                                      ${isLessonLocked(idx, lidx) ? 'locked' : ''}`}
-                        onClick={() => !isLessonLocked(idx, lidx) && setSelectedLesson({ chapter: idx, lesson: lidx })}
-                      >
-                        <div className="lesson-icon">
-                          {isLessonLocked(idx, lidx) ? <FaLock /> : <FaPlay />}
-                        </div>
-                        <div className="lesson-info">
-                          <div className="lesson-name">
-                            {lesson.lessonname}
-                            {isLessonLocked(idx, lidx) && <span className="lock-indicator"> (Locked)</span>}
-                          </div>
-                          <div className="lesson-meta">
-                            <span className="meta-item">
-                              <IoMdTime /> {Math.floor((lesson.audioFile?.length || 0) * 5)} min
-                            </span>
-                            {isLessonCompleted(idx, lidx) && (
-                              <span className="meta-item completed">
-                                <FaCheckCircle /> Completed
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {isActive && (
-                          <div className="active-indicator"></div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {chapter.exam && (
-                    <div 
-                      className={`exam-item ${selectedLesson?.chapter === idx && 
-                                      selectedLesson?.type === 'exam' ? 'active' : ''}
-                                    ${!isExamAvailable(idx) || userProgress.attemptedExam ? 'disabled' : ''}`}
-                      onClick={() => {
-                        if (isExamAvailable(idx) && !userProgress.attemptedExam) {
-                          setSelectedLesson({ chapter: idx, type: 'exam' });
-                        }
-                      }}
-                    >
-                      <div className="exam-icon">
-                        📝
-                      </div>
-                      <div className="exam-info">
-                        <div className="exam-name">
-                          {chapter.exam.examinationName}
-                          {userProgress.attemptedExam && <span className="attempted-indicator"> (Attempted)</span>}
-                          {!isExamAvailable(idx) && !userProgress.attemptedExam && <span className="locked-indicator"> (Complete lessons)</span>}
-                        </div>
-                        <div className="exam-meta">
-                          {chapter.exam.examQuestions.length} questions • 20 min
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
-          ))}
-        </div>
-        
-
-      </div>
-
-      {/* Main Content */}
-      <div className="main-content">
-        {selectedLesson ? (
-          selectedLesson.type === 'exam' ? (
-            <div className="exam-container">
-              <div className="exam-header">
-                <h2>{chapters[selectedLesson.chapter].exam.examinationName}</h2>
-                <div className="exam-stats">
-                  <div className="stat-item">
-                    <div className="stat-label">Questions</div>
-                    <div className="stat-value">
-                      {chapters[selectedLesson.chapter].exam.examQuestions.length}
+            {(submissionStatus?.status === "success" || hasAttemptedExam(selectedLesson.chapterIndex)) && (
+              <div style={styles.examResult}>
+                <h2 style={{ marginTop: 0, fontSize: '1.25rem' }}>Exam Result</h2>
+                <div style={styles.examStats}>
+                  <div style={styles.examStat}>
+                    <div style={styles.examStatLabel}>Score</div>
+                    <div style={styles.examStatValue}>
+                      {(submissionStatus?.data || getExamResult(selectedLesson.chapterIndex)).obtainedMarks}/
+                      {(submissionStatus?.data || getExamResult(selectedLesson.chapterIndex)).totalMarks}
                     </div>
                   </div>
-                  <div className="stat-item">
-                    <div className="stat-label">Total Marks</div>
-                    <div className="stat-value">
-                      {chapters[selectedLesson.chapter].exam.totalMarks}
+                  <div style={styles.examStat}>
+                    <div style={styles.examStatLabel}>Correct</div>
+                    <div style={styles.examStatValue}>
+                      <FaCheckCircle /> {(submissionStatus?.data || getExamResult(selectedLesson.chapterIndex)).correctCount}
                     </div>
                   </div>
-                  <div className="stat-item">
-                    <div className="stat-label">Subject</div>
-                    <div className="stat-value">
-                      {chapters[selectedLesson.chapter].exam.subject}
-                    </div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-label">Time</div>
-                    <div className="stat-value">
-                      20 min
+                  <div style={styles.examStat}>
+                    <div style={styles.examStatLabel}>Status</div>
+                    <div style={{
+                      ...styles.examStatValue,
+                      color: (submissionStatus?.data || getExamResult(selectedLesson.chapterIndex)).obtainedMarks >= currentExam.passMarks ?
+                        activeColors.white : activeColors.danger
+                    }}>
+                      {(submissionStatus?.data || getExamResult(selectedLesson.chapterIndex)).obtainedMarks >= currentExam.passMarks ? "Passed" : "Failed"}
                     </div>
                   </div>
                 </div>
+                <button
+                  style={{ ...styles.button, ...styles.primaryButton }}
+                  onClick={() => unlockNextContent(selectedLesson.chapterIndex, undefined)}
+                >
+                  Continue to Next
+                </button>
               </div>
-              
-              {submissionStatus?.status === "success" && (
-                <div className="result-card success">
-                  <h3>Exam Submitted Successfully!</h3>
-                  <div className="result-stats">
-                    <div className="result-item">
-                      <div className="result-label">Total Marks</div>
-                      <div className="result-value">
-                        {submissionStatus.data.totalMarks}
-                      </div>
-                    </div>
-                    <div className="result-item highlight">
-                      <div className="result-label">Obtained Marks</div>
-                      <div className="result-value">
-                        {submissionStatus.data.obtainedMarks}
-                      </div>
-                    </div>
-                    <div className="result-item correct">
-                      <div className="result-label">Correct Answers</div>
-                      <div className="result-value">
-                        <FaCheckCircle /> {submissionStatus.data.correctCount}
-                      </div>
-                    </div>
-                    <div className="result-item wrong">
-                      <div className="result-label">Wrong Answers</div>
-                      <div className="result-value">
-                        <FaTimesCircle /> {submissionStatus.data.wrongCount}
-                      </div>
-                    </div>
-                    <div className="result-item">
-                      <div className="result-label">Percentage</div>
-                      <div className="result-value">
-                        <BsGraphUp /> {Math.round((submissionStatus.data.obtainedMarks / submissionStatus.data.totalMarks) * 100)}%
-                      </div>
-                    </div>
+            )}
+            {submissionStatus?.status === 'error' && (
+              <div style={{ ...styles.card, backgroundColor: activeColors.danger, color: activeColors.white, borderLeft: `4px solid ${activeColors.danger}` }}>
+                <h2 style={{ color: activeColors.white, marginTop: 0, fontSize: '1.25rem' }}>Submission Error</h2>
+                <p style={{ color: activeColors.white }}>{submissionStatus.message}</p>
+              </div>
+            )}
+            {(!submissionStatus || submissionStatus?.status === 'error') && currentExam.examQuestions && (
+              <div style={styles.card}>
+                {!hasAttemptedExam(selectedLesson.chapterIndex) && (
+                  <div style={{
+                    backgroundColor: activeColors.primaryLight,
+                    color: activeColors.white,
+                    padding: theme.spacing.md,
+                    borderRadius: theme.borderRadius.md,
+                    marginBottom: theme.spacing.lg
+                  }}>
+                    <h2 style={{ color: activeColors.white, marginTop: 0, fontSize: '1.25rem' }}>Ready for the Exam?</h2>
+                    <p style={{ color: activeColors.white }}>Please answer all questions below and click "Submit Exam" when you're finished.</p>
                   </div>
-                  
-                  <div className="result-actions">
-                    <button className="retake-button">Retake Exam</button>
-                    <button className="continue-button">Continue Learning</button>
-                  </div>
-                </div>
-              )}
-              
-              {submissionStatus?.status === "error" && (
-                <div className="result-card error">
-                  {submissionStatus.message}
-                </div>
-              )}
-              
-              <div className="questions-container">
-                {chapters[selectedLesson.chapter].exam.examQuestions.map((q, i) => {
-                  const questionKey = `${selectedLesson.chapter}-${i}`;
+                )}
+                {currentExam.examQuestions.map((question, i) => {
+                  const questionKey = `${selectedLesson.chapterIndex}-${i}`;
+                  const answer = examAnswers[questionKey];
                   return (
-                    <div key={i} className="question-card">
-                      <div className="question-header">
-                        <span className="question-number">
-                          {i+1}
-                        </span>
-                        <h4>{q.question}</h4>
+                    <div key={question._id || i} style={styles.questionItem}>
+                      <div style={styles.questionHeader}>
+                        <div style={styles.questionNumber}>{i + 1}</div>
+                        <h3 style={styles.questionText}>{question.question}</h3>
                       </div>
-                      <div className="options-grid">
-                        {q.options.map((opt, j) => (
-                          <div 
-                            key={j} 
-                            className={`option-item ${examAnswers[questionKey] === opt ? 'selected' : ''}
-                                          ${userProgress.attemptedExam ? 'disabled' : ''}`}
-                            onClick={() => !userProgress.attemptedExam && handleAnswerSelect(questionKey, opt)}
+                      <div style={styles.optionsGrid}>
+                        {question.options.map((option, j) => (
+                          <div
+                            key={j}
+                            style={{ ...styles.optionItem, ...(answer === option ? styles.selectedOption : {}) }}
+                            onClick={() => handleAnswerSelect(questionKey, option)}
                           >
-                            <div className="option-letter">
+                            <div style={{ ...styles.optionMarker, ...(answer === option ? styles.selectedMarker : {}) }}>
                               {String.fromCharCode(65 + j)}
                             </div>
-                            <div className="option-text">{opt}</div>
-                            {examAnswers[questionKey] === opt && (
-                              <div className="option-check">
+                            <div style={styles.optionText}>{option}</div>
+                            {answer === option && (
+                              <div style={{ color: activeColors.white }}>
                                 <BsCheck2All />
                               </div>
                             )}
                           </div>
                         ))}
                       </div>
-                      <div className="question-footer">
-                        Marks: {q.marks}
+                      <div style={styles.questionMeta}>
+                        Marks: {question.marks}
                       </div>
                     </div>
                   );
                 })}
-              </div>
-              
-              {!userProgress.attemptedExam && submissionStatus?.status !== "success" && (
-                <div className="exam-actions">
-                  <button 
-                    className="submit-button"
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: theme.spacing.lg }}>
+                  <button
+                    style={{ ...styles.button, ...styles.primaryButton, ...(submissionStatus?.status === 'submitting' ? { opacity: 0.7 } : {}) }}
                     onClick={submitExam}
-                    disabled={submissionStatus?.status === "submitting"}
+                    disabled={submissionStatus?.status === 'submitting'}
                   >
-                    {submissionStatus?.status === "submitting" ? (
-                      <>
-                        <div className="spinner small"></div>
-                        Submitting...
-                      </>
-                    ) : 'Submit Exam'}
+                    {submissionStatus?.status === 'submitting' ? 'Submitting...' : 'Submit Exam'}
                   </button>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="lesson-container">
-              <div className="lesson-header">
-                <h2>
-                  {chapters[selectedLesson.chapter].lessons[selectedLesson.lesson].lessonname}
-                </h2>
-                <div className="lesson-stats">
-                  <span className="stat-item">
-                    <IoMdTime /> 15 min
-                  </span>
-                  <span className="stat-item">
-                    <FaHeadphones /> {chapters[selectedLesson.chapter].lessons[selectedLesson.lesson].audioFile?.length || 0} lectures
-                  </span>
-                  <span className="stat-item">
-                    <FaFilePdf /> {chapters[selectedLesson.chapter].lessons[selectedLesson.lesson].pdfFile?.length || 0} resources
-                  </span>
-                </div>
               </div>
-              {renderMediaFiles(
-                chapters[selectedLesson.chapter].lessons[selectedLesson.lesson],
-                selectedLesson.chapter,
-                selectedLesson.lesson
-              )}
+            )}
+          </div>
+        )}
+
+        {selectedLesson && !currentLesson && !currentExam && (
+          <div style={styles.emptyState}>
+            <div style={styles.emptyIcon}>
+              <FaBookOpen />
             </div>
-          )
-        ) : (
-          <div className="empty-state">
-            <div className="empty-icon">
-              <FaPlay />
-            </div>
-            <h3>Select a lesson to get started</h3>
-            <p>
-              Choose a lesson or exam from the sidebar to view its content and start learning
+            <h3 style={styles.emptyTitle}>Content Not Found</h3>
+            <p style={styles.emptyText}>
+              The selected content could not be loaded. Please try selecting another item.
             </p>
-            <button className="start-button" onClick={() => setSelectedLesson({ chapter: 0, lesson: 0 })}>
-              Start Learning
+            <button
+              style={{ ...styles.button, ...styles.primaryButton }}
+              onClick={openContentModal}
+            >
+              Select Content
             </button>
+          </div>
+        )}
+        {chapters.length === 0 && !loading && !error && (
+          <div style={styles.emptyState}>
+            <div style={styles.emptyIcon}>
+              <FaBookOpen />
+            </div>
+            <h3 style={styles.emptyTitle}>No Content Available</h3>
+            <p style={styles.emptyText}>
+              This course doesn't have any content available at the moment.
+            </p>
           </div>
         )}
       </div>
 
-      {/* Fixed Bottom Player */}
-      {audioRef.current && (
-        <div className="fixed-player">
-          <div className="player-info">
-            <div className="audio-name">
-              {chapters[selectedLesson?.chapter]?.lessons[selectedLesson?.lesson]?.audioFile?.[currentAudioIndex]?.name || "Audio Lecture"}
-            </div>
-            <div className="lesson-name">
-              {chapters[selectedLesson?.chapter]?.title || ""} • {chapters[selectedLesson?.chapter]?.lessons[selectedLesson?.lesson]?.lessonname || ""}
-            </div>
-          </div>
-          
-          <div className="player-controls">
-            <button className="control-btn" onClick={skipToPrevAudio}>
-              <FaStepBackward />
-            </button>
-            <button className="control-btn" onClick={skipBackward}>
-              <FaBackward />
-            </button>
-            <button className="play-btn" onClick={playPause}>
-              {isPlaying ? <FaPause /> : <FaPlay />}
-            </button>
-            <button className="control-btn" onClick={skipForward}>
-              <FaForward />
-            </button>
-            <button className="control-btn" onClick={skipToNextAudio}>
-              <FaStepForward />
+      <div
+        style={{
+          ...styles.sidebarOverlay,
+          opacity: isModalOpen ? 1 : 0,
+          pointerEvents: isModalOpen ? 'auto' : 'none',
+        }}
+        onClick={() => setIsModalOpen(false)}
+      >
+        <div
+          ref={modalRef}
+          style={{
+            ...styles.sidebarPanel,
+            width: sidebarWidth,
+            transform: isModalOpen ? 'translateX(0)' : 'translateX(100%)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={styles.sidebarHeader}>
+            <h2 style={styles.sidebarTitle}>Course Content</h2>
+            <button
+              style={styles.sidebarClose}
+              onClick={() => setIsModalOpen(false)}
+            >
+              <FaTimes />
             </button>
           </div>
-          
-          <div className="progress-container">
-            <div className="current-time">{formatTime(currentTime)}</div>
-            <div className="progress-bar" onClick={handleSeek}>
-              <div className="progress" style={{ width: `${progress}%` }}></div>
-            </div>
-            <div className="total-time">{formatTime(duration)}</div>
+
+          <div style={styles.sidebarBody}>
+            {chapters.map((chapter, cIdx) => (
+              <div key={chapter._id || cIdx}>
+                <div
+                  style={{
+                    ...styles.chapterItem,
+                    ...(selectedChapterIndex === cIdx ? styles.activeChapter : {})
+                  }}
+                  onClick={() => setSelectedChapterIndex(cIdx)}
+                >
+                  <div style={styles.chapterTitle}>
+                    Chapter {cIdx + 1}: {chapter.title}
+                  </div>
+                  <FaChevronRight />
+                </div>
+
+                {selectedChapterIndex === cIdx && (
+                  <div>
+                    {chapter.lessons?.map((lesson, lIdx) => {
+                      const locked = isLessonLocked(cIdx, lIdx);
+                      const completed = isLessonCompleted(cIdx, lIdx);
+                      const isActive = selectedLesson?.type === 'lesson' &&
+                        selectedLesson.chapterIndex === cIdx &&
+                        selectedLesson.lessonIndex === lIdx;
+
+                      let icon;
+                      if (locked) {
+                        icon = <FaLock />;
+                      } else if (completed) {
+                        icon = <FaCheckCircle />;
+                      } else if (lesson.audioFile?.length) {
+                        icon = <FaHeadphones />;
+                      } else if (lesson.pdfFile?.length) {
+                        icon = <FaFilePdf />;
+                      } else {
+                        icon = <FaBookOpen />;
+                      }
+
+                      return (
+                        <div
+                          key={lesson._id || lIdx}
+                          style={{
+                            ...styles.lessonItem,
+                            ...(isActive ? styles.activeLesson : {}),
+                            ...(locked ? styles.lockedLesson : {})
+                          }}
+                          onClick={() => !locked && handleSelectContent(cIdx, lIdx, 'lesson')}
+                        >
+                          <div style={{ ...styles.lessonIcon, ...(isActive ? styles.activeIcon : {}), ...(completed ? styles.completedIcon : {}), ...(locked ? styles.lockedIcon : {}) }}>
+                            {icon}
+                          </div>
+                          <div style={styles.lessonDetails}>
+                            <div style={styles.lessonName}>{lesson.lessonname}</div>
+                            <div style={styles.lessonMeta}>
+                              {lesson.audioFile?.length > 0 && (
+                                <span><FaHeadphones size="0.8em" /> {lesson.audioFile.length}</span>
+                              )}
+                              {lesson.pdfFile?.length > 0 && (
+                                <span><FaFilePdf size="0.8em" /> {lesson.pdfFile.length}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div style={styles.lessonStatus}>
+                            {completed && !locked && (
+                              <FaCheckCircle style={{ color: activeColors.success }} />
+                            )}
+                            {locked && (
+                              <FaLock style={{ color: activeColors.danger }} />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {chapter.exam && (
+                      <div
+                        style={{ ...styles.lessonItem, ...(selectedLesson?.type === 'exam' && selectedLesson.chapterIndex === cIdx ? styles.activeLesson : {}), ...(!isExamAvailable(cIdx) && !hasAttemptedExam(cIdx) ? styles.lockedLesson : {}) }}
+                        onClick={() => (isExamAvailable(cIdx) || hasAttemptedExam(cIdx)) && handleSelectContent(cIdx, undefined, 'exam')}
+                      >
+                        <div style={{ ...styles.lessonIcon, color: hasAttemptedExam(cIdx) ? activeColors.success : (!isExamAvailable(cIdx) ? activeColors.danger : activeColors.warning) }}>
+                          <FaEdit />
+                        </div>
+                        <div style={styles.lessonDetails}>
+                          <div style={styles.lessonName}>{chapter.exam.examinationName}</div>
+                          <div style={styles.lessonMeta}>
+                            {chapter.exam.examQuestions?.length || 0} Questions
+                          </div>
+                        </div>
+                        <div style={styles.lessonStatus}>
+                          {hasAttemptedExam(cIdx) && (
+                            <FaCheckCircle style={{ color: activeColors.success }} />
+                          )}
+                          {!isExamAvailable(cIdx) && !hasAttemptedExam(cIdx) && (
+                            <FaLock style={{ color: activeColors.danger }} />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {chapters.length === 0 && (
+              <div style={styles.emptyState}>
+                <div style={styles.emptyIcon}>
+                  <FaBookOpen />
+                </div>
+                <h3 style={styles.emptyTitle}>No Content Available</h3>
+                <p style={styles.emptyText}>
+                  This course doesn't have any content yet.
+                </p>
+              </div>
+            )}
           </div>
         </div>
-      )}
-
-      <style jsx>{`
-        :root {
-          --primary: #5624d0;
-          --primary-light: #f0f2ff;
-          --secondary: #3f37c9;
-          --success: #1cb0a8;
-          --danger: #e63757;
-          --warning: #f8961e;
-          --info: #4895ef;
-          --dark: #1c1d1f;
-          --light: #f8f9fa;
-          --gray: #6a6f73;
-          --light-gray: #d1d7dc;
-          --white: #ffffff;
-          --border-radius: 4px;
-          --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.08);
-          --transition: all 0.3s ease;
-        }
-
-        * {
-          box-sizing: border-box;
-          margin: 0;
-          padding: 0;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-
+      </div>
+      
+      <style>{`
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         body {
-          background-color: #f7f9fa;
-        }
-
-        .course-content-container {
-          display: flex;
-          height: 100vh;
-          background-color: #f7f9fa;
-          overflow: hidden;
-          position: relative;
-        }
-
-        /* Sidebar Toggle (Mobile) */
-        .sidebar-toggle {
-          display: none;
-          position: fixed;
-          top: 15px;
-          left: 15px;
-          z-index: 1000;
-          background: var(--primary);
-          color: white;
-          border: none;
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          font-size: 1.2rem;
-          cursor: pointer;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        @media (max-width: 768px) {
-          .sidebar-toggle {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-          width: 320px;
-          height: 100%;
-          background-color: var(--white);
-          box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
-          display: flex;
-          flex-direction: column;
-          border-right: 1px solid var(--light-gray);
-          z-index: 10;
-          transition: transform 0.3s ease;
-          overflow: hidden;
-        }
-
-        @media (max-width: 768px) {
-          .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            transform: translateX(-100%);
-            width: 280px;
-          }
-
-          .sidebar.open {
-            transform: translateX(0);
-          }
-        }
-
-        .sidebar-header {
-          padding: 20px;
-          border-bottom: 1px solid var(--light-gray);
-          background: linear-gradient(to right, #5624d0, #7a5af5);
-          color: white;
-        }
-
-        .course-title {
-          font-size: 1.1rem;
-          font-weight: 700;
-          margin-bottom: 10px;
-        }
-
-        .stats {
-          margin-top: 10px;
-        }
-
-        .progress-container {
-          height: 6px;
-          background-color: rgba(255,255,255,0.2);
-          border-radius: 3px;
-          overflow: hidden;
-          margin-bottom: 8px;
-        }
-
-        .progress-bar {
-          height: 100%;
-          background-color: white;
-          width: 35%;
-        }
-
-        .progress-text {
-          font-size: 0.85rem;
-          opacity: 0.9;
-        }
-
-        .chapter-list {
-          flex: 1;
-          overflow-y: auto;
-          padding: 10px 0;
-        }
-
-        .chapter-item {
-          margin-bottom: 4px;
-        }
-
-        .chapter-header {
-          display: flex;
-          align-items: center;
-          padding: 12px 16px;
-          cursor: pointer;
-          background-color: var(--white);
-          transition: var(--transition);
-          user-select: none;
-          border-bottom: 1px solid var(--light-gray);
-        }
-
-        .chapter-header:hover {
-          background-color: var(--light);
-        }
-
-        .chapter-header.expanded {
-          background-color: var(--primary-light);
-        }
-
-        .chevron {
-          margin-right: 12px;
-          color: var(--gray);
-          font-size: 0.9rem;
-        }
-
-        .chapter-info {
-          flex: 1;
-        }
-
-        .chapter-info h4 {
           margin: 0;
-          color: var(--dark);
-          font-size: 0.95rem;
-          font-weight: 700;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          font-size: 16px;
+          line-height: 1.5;
         }
-
-        .chapter-meta {
-          font-size: 0.8rem;
-          color: var(--gray);
-          margin-top: 4px;
-        }
-
-        .exam-badge {
-          background-color: #e6fffa;
-          color: #319795;
-          padding: 4px 10px;
-          border-radius: 12px;
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-
-        .lesson-list {
-          margin-left: 28px;
-          margin-top: 4px;
-        }
-
-        .lesson-item {
-          display: flex;
-          align-items: center;
-          padding: 12px 16px;
-          margin-bottom: 4px;
-          border-radius: 4px;
-          cursor: pointer;
-          background-color: var(--white);
-          transition: var(--transition);
-          position: relative;
-        }
-
-        .lesson-item:hover:not(.locked) {
-          background-color: var(--light);
-        }
-
-        .lesson-item.active {
-          background-color: var(--primary-light);
-          border-left: 3px solid var(--primary);
-        }
-
-        .lesson-item.locked {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .lesson-icon {
-          color: var(--gray);
-          margin-right: 12px;
-          font-size: 0.9rem;
-        }
-
-        .lesson-item.active .lesson-icon {
-          color: var(--primary);
-        }
-
-        .lesson-item.locked .lesson-icon {
-          color: var(--danger);
-        }
-
-        .lesson-info {
-          flex: 1;
-        }
-
-        .lesson-name {
-          font-weight: 500;
-          color: var(--dark);
-          font-size: 0.9rem;
-          margin-bottom: 4px;
-        }
-
-        .lock-indicator {
-          color: var(--danger);
-          font-size: 0.8rem;
-          margin-left: 6px;
-        }
-
-        .lesson-meta {
-          display: flex;
-          gap: 10px;
-          font-size: 0.75rem;
-          color: var(--gray);
-        }
-
-        .meta-item {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .meta-item.completed {
-          color: var(--success);
-        }
-
-        .active-indicator {
-          width: 8px;
-          height: 8px;
-          background-color: var(--primary);
-          border-radius: 50%;
-        }
-
-        .exam-item {
-          display: flex;
-          align-items: center;
-          padding: 12px 16px;
-          margin-bottom: 4px;
-          border-radius: 4px;
-          cursor: pointer;
-          background-color: var(--white);
-          transition: var(--transition);
-        }
-
-        .exam-item:hover:not(.disabled) {
-          background-color: var(--light);
-        }
-
-        .exam-item.active {
-          background-color: var(--primary-light);
-          border-left: 3px solid var(--primary);
-        }
-
-        .exam-item.disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .exam-icon {
-          background-color: #e6fffa;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify: center;
-          margin-right: 12px;
-          color: #319795;
-          font-size: 0.9rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .exam-info {
-          flex: 1;
-        }
-
-        .exam-name {
-          font-weight: 500;
-          color: var(--dark);
-          font-size: 0.9rem;
-          margin-bottom: 4px;
-        }
-
-        .exam-meta {
-          font-size: 0.8rem;
-          color: var(--gray);
-        }
-
-        .attempted-indicator {
-          color: var(--success);
-          font-size: 0.8rem;
-          margin-left: 6px;
-        }
-
-        .locked-indicator {
-          color: var(--danger);
-          font-size: 0.8rem;
-          margin-left: 6px;
-        }
-
-        .sidebar-footer {
-          padding: 16px;
-          border-top: 1px solid var(--light-gray);
-          background-color: #f7f9fa;
-        }
-
-        .user-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .user-avatar {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          background-color: var(--primary);
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 600;
-        }
-
-        .user-name {
-          font-weight: 600;
-          color: var(--dark);
-        }
-
-        /* Main Content Styles */
-        .main-content {
-          flex: 1;
-          padding: 24px;
-          overflow-y: auto;
-          background-color: #f7f9fa;
-        }
-
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: ${activeColors.light}; }
+        ::-webkit-scrollbar-thumb { background: ${activeColors.gray}; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: ${activeColors.dark}; }
+        button { cursor: pointer; outline: none; }
+        button:disabled { cursor: not-allowed; }
+        a { color: ${activeColors.primary}; text-decoration: none; }
+        a:hover { text-decoration: none; }
+        h1, h2, h3, h4, h5, h6 { margin-top: 0; line-height: 1.2; }
         @media (max-width: 768px) {
-          .main-content {
-            padding: 16px;
-            padding-top: 60px;
-          }
-        }
-
-        /* Lesson Container */
-        .lesson-container {
-          background-color: var(--white);
-          border-radius: var(--border-radius);
-          box-shadow: var(--box-shadow);
-          padding: 32px;
-          max-width: 800px;
-          margin: 0 auto;
-        }
-
-        @media (max-width: 768px) {
-          .lesson-container {
-            padding: 20px;
-          }
-        }
-
-        .lesson-header {
-          margin-bottom: 24px;
-          padding-bottom: 16px;
-          border-bottom: 1px solid var(--light-gray);
-        }
-
-        .lesson-container h2 {
-          margin-top: 0;
-          margin-bottom: 8px;
-          color: var(--dark);
-        }
-
-        .lesson-stats {
-          display: flex;
-          gap: 16px;
-          font-size: 0.9rem;
-          color: var(--gray);
-        }
-
-        .stat-item {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        /* Media Container */
-        .media-container {
-          display: flex;
-          flex-direction: column;
-          gap: 30px;
-        }
-
-        .lesson-description {
-          background-color: #f9fafb;
-          padding: 20px;
-          border-radius: var(--border-radius);
-          margin-bottom: 10px;
-          border-left: 3px solid var(--primary);
-        }
-
-        .description-title {
-          color: var(--dark);
-          margin-bottom: 12px;
-          font-size: 1.1rem;
-        }
-
-        .description-text {
-          color: var(--gray);
-          line-height: 1.6;
-        }
-
-        /* Audio Section */
-        .audio-section {
-          margin-top: 20px;
-        }
-
-        .section-title {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: var(--dark);
-          margin-bottom: 16px;
-          font-size: 1.1rem;
-          font-weight: 700;
-        }
-
-        .icon {
-          color: var(--primary);
-        }
-
-        .audio-player {
-          background-color: var(--white);
-          border-radius: var(--border-radius);
-          box-shadow: var(--box-shadow);
-          overflow: hidden;
-        }
-
-        .player-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px;
-          background-color: #f9fafb;
-          border-bottom: 1px solid var(--light-gray);
-        }
-
-        .player-title {
-          flex: 1;
-        }
-
-        .now-playing {
-          font-size: 0.8rem;
-          color: var(--gray);
-          margin-bottom: 4px;
-        }
-
-        .audio-name {
-          font-weight: 600;
-          color: var(--dark);
-          font-size: 1rem;
-        }
-
-        .audio-meta {
-          font-size: 0.9rem;
-          color: var(--gray);
-        }
-
-        .player-controls {
-          padding: 20px;
-        }
-
-        .progress-container {
-          position: relative;
-          height: 6px;
-          background-color: var(--light-gray);
-          border-radius: 3px;
-          margin-bottom: 8px;
-          cursor: pointer;
-        }
-
-        .progress-bar {
-          height: 100%;
-          background-color: var(--primary);
-          width: 0%;
-          border-radius: 3px;
-        }
-
-        .progress-thumb {
-          position: absolute;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 12px;
-          height: 12px;
-          background-color: var(--primary);
-          border-radius: 50%;
-          margin-left: -6px;
-        }
-
-        .time-info {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.8rem;
-          color: var(--gray);
-          margin-bottom: 16px;
-        }
-
-        .control-buttons {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 16px;
-        }
-
-        .control-btn {
-          background: none;
-          border: none;
-          color: var(--dark);
-          font-size: 1rem;
-          cursor: pointer;
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: var(--transition);
-        }
-
-        .control-btn:hover {
-          background-color: var(--primary-light);
-          color: var(--primary);
-        }
-
-        .play-btn {
-          background-color: var(--primary);
-          color: white;
-          border: none;
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: var(--transition);
-        }
-
-        .play-btn:hover {
-          background-color: #3f0fb7;
-        }
-
-        .volume-control {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-left: 16px;
-        }
-
-        .volume-slider {
-          width: 80px;
-          height: 4px;
-          -webkit-appearance: none;
-          background: var(--light-gray);
-          border-radius: 2px;
-          outline: none;
-        }
-
-        .volume-slider::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          width: 12px;
-          height: 12px;
-          background: var(--primary);
-          border-radius: 50%;
-          cursor: pointer;
-        }
-
-        .playback-rate {
-          position: relative;
-        }
-
-        .rate-btn {
-          background: none;
-          border: 1px solid var(--light-gray);
-          color: var(--dark);
-          padding: 4px 10px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.9rem;
-        }
-
-        .rate-btn:hover {
-          background-color: var(--light);
-        }
-
-        .rate-options {
-          position: absolute;
-          bottom: 100%;
-          left: 0;
-          background-color: var(--white);
-          border-radius: var(--border-radius);
-          box-shadow: var(--box-shadow);
-          padding: 8px;
-          min-width: 80px;
-          z-index: 10;
-        }
-
-        .rate-option {
-          display: block;
-          width: 100%;
-          padding: 8px 12px;
-          background: none;
-          border: none;
-          text-align: left;
-          cursor: pointer;
-          font-size: 0.9rem;
-          color: var(--dark);
-        }
-
-        .rate-option:hover {
-          background-color: var(--light);
-        }
-
-        .rate-option.active {
-          color: var(--primary);
-          font-weight: 600;
-        }
-
-        .audio-list {
-          padding: 0 16px 16px;
-        }
-
-        .audio-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px;
-          border-radius: var(--border-radius);
-          cursor: pointer;
-          transition: var(--transition);
-        }
-
-        .audio-item:hover {
-          background-color: var(--light);
-        }
-
-        .audio-item.active {
-          background-color: var(--primary-light);
-        }
-
-        .audio-info {
-          flex: 1;
-        }
-
-        .audio-name {
-          font-weight: 500;
-          color: var(--dark);
-          margin-bottom: 4px;
-          font-size: 0.95rem;
-        }
-
-        .audio-meta {
-          display: flex;
-          gap: 12px;
-          font-size: 0.8rem;
-          color: var(--gray);
-        }
-
-        .play-indicator {
-          color: var(--primary);
-          font-size: 1rem;
-        }
-
-        /* PDF Section */
-        .pdf-section {
-          margin-top: 20px;
-        }
-
-        .pdf-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-          gap: 16px;
-        }
-
-        @media (max-width: 600px) {
-          .pdf-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        .pdf-card {
-          background-color: var(--white);
-          border-radius: var(--border-radius);
-          overflow: hidden;
-          box-shadow: var(--box-shadow);
-          transition: var(--transition);
-          text-decoration: none;
-          color: var(--dark);
-          display: flex;
-          flex-direction: column;
-          border: 1px solid var(--light-gray);
-        }
-
-        .pdf-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          border-color: var(--primary);
-        }
-
-        .pdf-icon {
-          background-color: #fff5f5;
-          color: #e53e3e;
-          padding: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2rem;
-        }
-
-        .pdf-details {
-          padding: 16px;
-          flex: 1;
-        }
-
-        .pdf-name {
-          font-weight: 500;
-          margin-bottom: 8px;
-        }
-
-        .pdf-meta {
-          font-size: 0.8rem;
-          color: var(--gray);
-        }
-
-        .download-badge {
-          background-color: var(--primary-light);
-          color: var(--primary);
-          padding: 8px 16px;
-          text-align: center;
-          font-size: 0.8rem;
-          font-weight: 600;
-        }
-
-        /* Lesson Actions */
-        .lesson-actions {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 20px;
-          padding-top: 20px;
-          border-top: 1px solid var(--light-gray);
-        }
-
-        .complete-lesson-button {
-          background-color: var(--success);
-          color: white;
-          border: none;
-          padding: 12px 24px;
-          border-radius: 4px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: var(--transition);
-        }
-
-        .complete-lesson-button:hover {
-          background-color: #18968f;
-        }
-
-        .completion-badge {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          background-color: #f0fff4;
-          color: #38a169;
-          padding: 12px 20px;
-          border-radius: 4px;
-          font-weight: 600;
-        }
-
-        .audio-navigation {
-          display: flex;
-          gap: 12px;
-        }
-
-        .nav-button {
-          background: none;
-          border: 1px solid var(--light-gray);
-          color: var(--dark);
-          padding: 8px 16px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: 500;
-          transition: var(--transition);
-        }
-
-        .nav-button:hover {
-          background-color: var(--light);
-        }
-
-        .nav-button.next {
-          background-color: var(--primary);
-          color: white;
-          border-color: var(--primary);
-        }
-
-        .nav-button.next:hover {
-          background-color: #3f0fb7;
-        }
-
-        .nav-button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        /* Exam Container */
-        .exam-container {
-          max-width: 800px;
-          margin: 0 auto;
-        }
-
-        .exam-header {
-          background-color: var(--white);
-          border-radius: var(--border-radius);
-          box-shadow: var(--box-shadow);
-          padding: 24px;
-          margin-bottom: 24px;
-        }
-
-        @media (max-width: 768px) {
-          .exam-header {
-            padding: 16px;
-          }
-        }
-
-        .exam-header h2 {
-          margin-top: 0;
-          margin-bottom: 16px;
-          color: var(--dark);
-        }
-
-        .exam-stats {
-          display: flex;
-          gap: 20px;
-          margin-bottom: 20px;
-          flex-wrap: wrap;
-        }
-
-        .stat-item {
-          background-color: var(--primary-light);
-          padding: 12px 20px;
-          border-radius: 8px;
-          min-width: 120px;
-        }
-
-        @media (max-width: 600px) {
-          .stat-item {
-            min-width: 100px;
-            padding: 10px 12px;
-          }
-        }
-
-        .stat-label {
-          color: var(--gray);
-          font-size: 0.85rem;
-          margin-bottom: 4px;
-        }
-
-        .stat-value {
-          font-weight: 600;
-          color: var(--dark);
-        }
-
-        /* Result Card */
-        .result-card {
-          border-radius: var(--border-radius);
-          padding: 20px;
-          margin-bottom: 24px;
-        }
-
-        .result-card.success {
-          background-color: #f0fff4;
-          border: 1px solid #c6f6d5;
-        }
-
-        .result-card.error {
-          background-color: #fff5f5;
-          border: 1px solid #fed7d7;
-          color: #e53e3e;
-        }
-
-        .result-card h3 {
-          margin-top: 0;
-          margin-bottom: 16px;
-        }
-
-        .result-card.success h3 {
-          color: #38a169;
-        }
-
-        .result-stats {
-          display: flex;
-          gap: 20px;
-          margin-top: 10px;
-          flex-wrap: wrap;
-        }
-
-        .result-item {
-          min-width: 120px;
-        }
-
-        .result-item.highlight {
-          min-width: 140px;
-        }
-
-        .result-label {
-          color: var(--gray);
-          font-size: 0.85rem;
-          margin-bottom: 4px;
-        }
-
-        .result-value {
-          font-weight: 600;
-          font-size: 1.1rem;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .result-item.highlight .result-value {
-          font-size: 1.3rem;
-          color: var(--dark);
-        }
-
-        .result-item.correct .result-value {
-          color: #38a169;
-        }
-
-        .result-item.wrong .result-value {
-          color: #e53e3e;
-        }
-
-        .result-actions {
-          display: flex;
-          gap: 12px;
-          margin-top: 20px;
-        }
-
-        .retake-button, .continue-button {
-          padding: 10px 20px;
-          border: none;
-          border-radius: 4px;
-          font-weight: 600;
-          cursor: pointer;
-        }
-
-        .retake-button {
-          background-color: var(--light);
-          color: var(--dark);
-        }
-
-        .retake-button:hover {
-          background-color: #e2e6ea;
-        }
-
-        .continue-button {
-          background-color: var(--primary);
-          color: white;
-        }
-
-        .continue-button:hover {
-          background-color: #3f0fb7;
-        }
-
-        /* Questions Container */
-        .questions-container {
-          background-color: var(--white);
-          border-radius: var(--border-radius);
-          box-shadow: var(--box-shadow);
-          padding: 24px;
-          margin-bottom: 24px;
-        }
-
-        @media (max-width: 768px) {
-          .questions-container {
-            padding: 16px;
-          }
-        }
-
-        .question-card {
-          margin-bottom: 30px;
-          padding-bottom: 20px;
-          border-bottom: 1px solid var(--light-gray);
-        }
-
-        .question-card:last-child {
-          margin-bottom: 0;
-          padding-bottom: 0;
-          border-bottom: none;
-        }
-
-        .question-header {
-          display: flex;
-          align-items: center;
-          margin-bottom: 16px;
-        }
-
-        .question-number {
-          background-color: var(--primary);
-          color: white;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          margin-right: 12px;
-          font-size: 0.9rem;
-          flex-shrink: 0;
-        }
-
-        .question-header h4 {
-          margin: 0;
-          font-weight: 500;
-        }
-
-        .options-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-          margin-bottom: 16px;
-        }
-
-        @media (max-width: 768px) {
-          .options-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        .option-item {
-          padding: 16px;
-          border-radius: 8px;
-          border: 1px solid var(--light-gray);
-          background-color: var(--white);
-          cursor: pointer;
-          transition: var(--transition);
-          display: flex;
-          align-items: center;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .option-item:hover:not(.disabled) {
-          border-color: var(--primary);
-        }
-
-        .option-item.selected {
-          background-color: var(--primary-light);
-          border-color: var(--primary);
-        }
-
-        .option-item.disabled {
-          cursor: not-allowed;
-          opacity: 0.7;
-        }
-
-        .option-letter {
-          font-weight: 600;
-          margin-right: 12px;
-          color: var(--primary);
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background-color: var(--primary-light);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .option-item.selected .option-letter {
-          background-color: var(--primary);
-          color: white;
-        }
-
-        .option-text {
-          flex: 1;
-        }
-
-        .option-check {
-          margin-left: 12px;
-          color: var(--primary);
-          opacity: 0;
-          transition: var(--transition);
-        }
-
-        .option-item.selected .option-check {
-          opacity: 1;
-        }
-
-        .question-footer {
-          display: flex;
-          justify-content: flex-end;
-          font-size: 0.9rem;
-          color: var(--gray);
-        }
-
-        /* Exam Actions */
-        .exam-actions {
-          display: flex;
-          justify-content: center;
-          margin-top: 20px;
-        }
-
-        .submit-button {
-          background-color: var(--primary);
-          color: white;
-          border: none;
-          padding: 12px 32px;
-          border-radius: 4px;
-          font-weight: 600;
-          cursor: pointer;
-          font-size: 1rem;
-          transition: var(--transition);
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .submit-button:hover {
-          background-color: #3f0fb7;
-        }
-
-        .submit-button:disabled {
-          background-color: var(--gray);
-          cursor: not-allowed;
-        }
-
-        /* Empty State */
-        .empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 100%;
-          text-align: center;
-          color: var(--gray);
-          padding: 20px;
-        }
-
-        .empty-icon {
-          width: 80px;
-          height: 80px;
-          border-radius: 50%;
-          background-color: var(--primary-light);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 24px;
-          color: var(--primary);
-          font-size: 2rem;
-        }
-
-        .empty-state h3 {
-          color: var(--dark);
-          margin-bottom: 8px;
-          font-size: 1.5rem;
-        }
-
-        .empty-state p {
-          max-width: 400px;
-          line-height: 1.6;
-          margin-bottom: 24px;
-        }
-
-        .start-button {
-          background-color: var(--primary);
-          color: white;
-          border: none;
-          padding: 12px 32px;
-          border-radius: 4px;
-          font-weight: 600;
-          cursor: pointer;
-          font-size: 1rem;
-          transition: var(--transition);
-        }
-
-        .start-button:hover {
-          background-color: #3f0fb7;
-        }
-
-        /* Loading State */
-        .loading-container {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          height: 100vh;
-          color: var(--gray);
-          gap: 16px;
-        }
-
-        .spinner {
-          width: 50px;
-          height: 50px;
-          border: 4px solid var(--light-gray);
-          border-top: 4px solid var(--primary);
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        .spinner.small {
-          width: 20px;
-          height: 20px;
-          border-width: 2px;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        /* Error State */
-        .error-container {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          height: 100vh;
-          color: var(--danger);
-          gap: 16px;
-          text-align: center;
-          padding: 20px;
-        }
-
-        .error-icon {
-          width: 60px;
-          height: 60px;
-          border-radius: 50%;
-          background-color: #fff5f5;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2rem;
-          font-weight: bold;
-          color: var(--danger);
-        }
-
-        .error-message {
-          font-size: 1.1rem;
-          margin-bottom: 8px;
-        }
-
-        .retry-button {
-          background-color: var(--danger);
-          color: white;
-          border: none;
-          padding: 10px 24px;
-          border-radius: 4px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: var(--transition);
-        }
-
-        .retry-button:hover {
-          background-color: #d1145a;
-        }
-
-        /* Fixed Player */
-        .fixed-player {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          background-color: white;
-          box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-          padding: 12px 24px;
-          display: flex;
-          align-items: center;
-          gap: 24px;
-          z-index: 1000;
-        }
-
-        .player-info {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .audio-name {
-          font-weight: 600;
-          color: var(--dark);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .lesson-name {
-          font-size: 0.85rem;
-          color: var(--gray);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .player-controls {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
-
-        .fixed-player .play-btn {
-          width: 36px;
-          height: 36px;
-          font-size: 0.9rem;
-        }
-
-        .fixed-player .control-btn {
-          font-size: 0.9rem;
-        }
-
-        .progress-container {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          width: 300px;
-        }
-
-        .fixed-player .progress-bar {
-          flex: 1;
-          height: 4px;
-          background-color: var(--light-gray);
-          border-radius: 2px;
-          position: relative;
-          cursor: pointer;
-        }
-
-        .fixed-player .progress {
-          height: 100%;
-          background-color: var(--primary);
-          border-radius: 2px;
-        }
-
-        .current-time, .total-time {
-          font-size: 0.8rem;
-          color: var(--gray);
-        }
-
-        @media (max-width: 768px) {
-          .fixed-player {
-            flex-direction: column;
-            padding: 12px;
-            gap: 12px;
-          }
-          
-          .player-info {
-            width: 100%;
-          }
-          
-          .player-controls {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .progress-container {
-            width: 100%;
-          }
+          body { font-size: 14px; }
+          h1 { font-size: 1.5rem; }
+          h2 { font-size: 1.25rem; }
+          h3 { font-size: 1.1rem; }
         }
       `}</style>
     </div>

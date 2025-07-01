@@ -1,53 +1,86 @@
 import React, { useState } from 'react';
-import { Box, TextField, Button, CircularProgress, Typography, RadioGroup, FormControlLabel, Radio, FormLabel, FormControl } from '@mui/material';
-import EmailIcon from '@mui/icons-material/Email';
-import PhoneIcon from '@mui/icons-material/Phone';
+import { Box, TextField, Button, CircularProgress } from '@mui/material';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 const RegisterForm = ({ onRegisterSuccess, onError }) => {
-  const [formData, setFormData] = useState({ email: '', mobile: '' });
-  const [registerWith, setRegisterWith] = useState('email'); // 'email' or 'mobile'
+  const [formData, setFormData] = useState({ emailOrMobile: '' });
   const [loading, setLoading] = useState(false);
+  const [errorText, setErrorText] = useState(''); // State to hold validation error message
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleRegisterTypeChange = (e) => {
-    setRegisterWith(e.target.value);
-    setFormData({ email: '', mobile: '' }); // Reset fields on type change
+    if (errorText) {
+      setErrorText(''); // Clear error when user starts typing again
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    try {
-      const payload = registerWith === 'email' ? { email: formData.email } : { mobile: formData.mobile };
-      if (registerWith === 'email' && !formData.email) {
-        onError("Email is required.");
-        setLoading(false);
-        return;
-      }
-      if (registerWith === 'mobile' && !formData.mobile) {
-        onError("Mobile number is required.");
-        setLoading(false);
-        return;
-      }
-      // Basic frontend validation (backend does more thorough)
-      if (registerWith === 'email' && !/\S+@\S+\.\S+/.test(formData.email)) {
-          onError("Invalid email format.");
-          setLoading(false);
-          return;
-      }
-      if (registerWith === 'mobile' && !/^\+\d{1,3}\d{7,15}$/.test(formData.mobile)) {
-          onError("Invalid mobile format. Include country code e.g., +1234567890");
-          setLoading(false);
-          return;
-      }
+    setErrorText(''); // Clear previous errors
 
-      onRegisterSuccess(payload); // Pass payload to parent (SignupPage)
+    // Trim whitespace from the input
+    const emailOrMobile = formData.emailOrMobile.trim();
+
+    if (!emailOrMobile) {
+      const msg = "Email or Mobile Number is required.";
+      setErrorText(msg);
+      onError(msg); // Also inform parent if needed
+      setLoading(false);
+      return;
+    }
+
+    try {
+      let payload = {};
+      
+      // --- THIS IS THE KEY LOGIC ---
+
+      // 1. Check if the input looks like an email
+      if (emailOrMobile.includes('@')) {
+        // Use a regex for more robust email validation
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOrMobile)) {
+          const msg = "Invalid email format.";
+          setErrorText(msg);
+          onError(msg);
+          setLoading(false);
+          return;
+        }
+        // If valid, create an email payload
+        payload = { email: emailOrMobile };
+      } 
+      // 2. Otherwise, treat it as a potential mobile number
+      else {
+        // Remove any spaces or non-digit characters except '+' at the start
+        let mobileNumber = emailOrMobile.replace(/[^\d+]/g, '');
+
+        // Check if it's a valid 10-digit number (and prepend +91 for Indian format)
+        if (/^\d{10}$/.test(mobileNumber)) {
+          payload = { mobile: `+91${mobileNumber}` };
+        } 
+        // Also allow if the user correctly enters the +91 prefix already
+        else if (/^\+91\d{10}$/.test(mobileNumber)) {
+            payload = { mobile: mobileNumber };
+        }
+        // 3. If it's neither a valid email nor a valid mobile number, show an error
+        else {
+          const msg = "Please enter a valid email or a 10-digit mobile number.";
+          setErrorText(msg);
+          onError(msg);
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // --- END OF KEY LOGIC ---
+
+      // If validation passes, send the correctly formatted payload to the parent
+      console.log('Sending payload to backend:', payload);
+      onRegisterSuccess(payload); // This will be either { email: '...' } or { mobile: '+91...' }
+
     } catch (err) {
-      // This catch is usually for network errors, service.js handles API errors
-      onError(err.message || 'Registration failed. Please try again.');
+      const msg = err.message || 'Registration failed. Please try again.';
+      setErrorText(msg);
+      onError(msg);
     } finally {
       setLoading(false);
     }
@@ -55,48 +88,25 @@ const RegisterForm = ({ onRegisterSuccess, onError }) => {
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-      <FormControl component="fieldset" sx={{ mb: 2 }}>
-        <FormLabel component="legend">Register with:</FormLabel>
-        <RadioGroup row name="registerType" value={registerWith} onChange={handleRegisterTypeChange}>
-          <FormControlLabel value="email" control={<Radio />} label="Email" />
-          <FormControlLabel value="mobile" control={<Radio />} label="Mobile" />
-        </RadioGroup>
-      </FormControl>
-
-      {registerWith === 'email' && (
-        <TextField
-          margin="normal"
-          required
-          fullWidth
-          id="email"
-          label="Email Address"
-          name="email"
-          autoComplete="email"
-          autoFocus
-          value={formData.email}
-          onChange={handleChange}
-          InputProps={{
-            startAdornment: <EmailIcon sx={{ mr: 1, color: 'action.active' }} />,
-          }}
-        />
-      )}
-      {registerWith === 'mobile' && (
-        <TextField
-          margin="normal"
-          required
-          fullWidth
-          id="mobile"
-          label="Mobile Number (with country code)"
-          name="mobile"
-          autoComplete="tel"
-          placeholder="+1234567890"
-          value={formData.mobile}
-          onChange={handleChange}
-          InputProps={{
-            startAdornment: <PhoneIcon sx={{ mr: 1, color: 'action.active' }} />,
-          }}
-        />
-      )}
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        id="emailOrMobile"
+        label="Email or 10-Digit Mobile Number"
+        name="emailOrMobile"
+        autoComplete="email"
+        autoFocus
+        placeholder="e.g., user@example.com or 9876543210"
+        value={formData.emailOrMobile}
+        onChange={handleChange}
+        error={!!errorText} // Show error state on TextField
+        helperText={errorText} // Display the error message
+        InputProps={{
+          startAdornment: <AccountCircleIcon sx={{ mr: 1, color: 'action.active' }} />,
+        }}
+      />
+      
       <Button
         type="submit"
         fullWidth
@@ -111,183 +121,3 @@ const RegisterForm = ({ onRegisterSuccess, onError }) => {
 };
 
 export default RegisterForm;
-
-
-
-// import React, { useState } from 'react';
-// import { 
-//   Box, 
-//   TextField, 
-//   Button, 
-//   CircularProgress, 
-//   Typography, 
-//   RadioGroup, 
-//   FormControlLabel, 
-//   Radio, 
-//   FormLabel, 
-//   FormControl,
-//   Paper,
-//   Divider
-// } from '@mui/material';
-// import EmailIcon from '@mui/icons-material/Email';
-// import PhoneIcon from '@mui/icons-material/Phone';
-
-// const RegisterForm = ({ onRegisterSuccess, onError }) => {
-//   const [formData, setFormData] = useState({ email: '', mobile: '' });
-//   const [registerWith, setRegisterWith] = useState('email');
-//   const [loading, setLoading] = useState(false);
-
-//   const handleChange = (e) => {
-//     setFormData({ ...formData, [e.target.name]: e.target.value });
-//   };
-
-//   const handleRegisterTypeChange = (e) => {
-//     setRegisterWith(e.target.value);
-//     setFormData({ email: '', mobile: '' });
-//   };
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setLoading(true);
-//     try {
-//       const payload = registerWith === 'email' ? { email: formData.email } : { mobile: formData.mobile };
-      
-//       // Validation checks remain the same...
-      
-//       onRegisterSuccess(payload);
-//     } catch (err) {
-//       onError(err.message || 'Registration failed. Please try again.');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <Paper elevation={3} sx={{ 
-//       maxWidth: 450,
-//       mx: 'auto',
-//       p: 4,
-//       borderRadius: 3,
-//       boxShadow: '0px 10px 25px rgba(0, 0, 0, 0.08)'
-//     }}>
-//       <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ 
-//         fontWeight: 600,
-//         color: 'primary.main',
-//         mb: 2
-//       }}>
-//         Create Account
-//       </Typography>
-      
-//       <Typography variant="body1" align="center" sx={{ mb: 3, color: 'text.secondary' }}>
-//         Get started by registering with your email or mobile
-//       </Typography>
-      
-//       <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-//         <FormControl component="fieldset" fullWidth sx={{ mb: 3 }}>
-//           <RadioGroup 
-//             row 
-//             name="registerType" 
-//             value={registerWith} 
-//             onChange={handleRegisterTypeChange}
-//             sx={{ justifyContent: 'center', gap: 3 }}
-//           >
-//             <FormControlLabel 
-//               value="email" 
-//               control={<Radio color="primary" />} 
-//               label={
-//                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-//                   <EmailIcon sx={{ mr: 1 }} />
-//                   <Typography>Email</Typography>
-//                 </Box>
-//               } 
-//             />
-//             <FormControlLabel 
-//               value="mobile" 
-//               control={<Radio color="primary" />} 
-//               label={
-//                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-//                   <PhoneIcon sx={{ mr: 1 }} />
-//                   <Typography>Mobile</Typography>
-//                 </Box>
-//               } 
-//             />
-//           </RadioGroup>
-//         </FormControl>
-
-//         {registerWith === 'email' ? (
-//           <TextField
-//             margin="normal"
-//             required
-//             fullWidth
-//             id="email"
-//             label="Email Address"
-//             name="email"
-//             autoComplete="email"
-//             autoFocus
-//             value={formData.email}
-//             onChange={handleChange}
-//             sx={{ mb: 2 }}
-//             InputProps={{
-//               startAdornment: <EmailIcon sx={{ mr: 1, color: 'action.active' }} />,
-//             }}
-//           />
-//         ) : (
-//           <TextField
-//             margin="normal"
-//             required
-//             fullWidth
-//             id="mobile"
-//             label="Mobile Number"
-//             name="mobile"
-//             autoComplete="tel"
-//             placeholder="+1234567890"
-//             value={formData.mobile}
-//             onChange={handleChange}
-//             sx={{ mb: 2 }}
-//             InputProps={{
-//               startAdornment: <PhoneIcon sx={{ mr: 1, color: 'action.active' }} />,
-//             }}
-//           />
-//         )}
-        
-//         <Button
-//           type="submit"
-//           fullWidth
-//           variant="contained"
-//           size="large"
-//           sx={{ 
-//             mt: 2, 
-//             mb: 3,
-//             py: 1.5,
-//             borderRadius: 2,
-//             fontSize: '1rem',
-//             fontWeight: 600,
-//             textTransform: 'none',
-//             boxShadow: 'none',
-//             '&:hover': {
-//               boxShadow: 'none',
-//               transform: 'translateY(-1px)',
-//               transition: 'transform 0.2s'
-//             }
-//           }}
-//           disabled={loading}
-//         >
-//           {loading ? <CircularProgress size={24} color="inherit" /> : 'Send Verification Code'}
-//         </Button>
-        
-//         {/* <Divider sx={{ my: 2 }}>or</Divider>
-        
-//         <Box sx={{ textAlign: 'center', mt: 2 }}>
-//           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-//             Already have an account?{' '}
-//             <Button href="/login" variant="text" size="small" sx={{ fontWeight: 600 }}>
-//               Sign in
-//             </Button>
-//           </Typography>
-//         </Box> */}
-//       </Box>
-//     </Paper>
-//   );
-// };
-
-// export default RegisterForm;

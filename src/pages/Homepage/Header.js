@@ -1,12 +1,9 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   FiChevronDown, FiHome, FiBook, FiFileText,
-  FiBookmark, FiUser, FiLogOut, FiMenu, FiX
+  FiBookmark, FiUser, FiLogOut, FiLogIn, FiMenu, FiX
 } from 'react-icons/fi';
-import { FaSignInAlt } from 'react-icons/fa';
 
 import { useAuth } from '../../Context/AuthContext';
 import defaultAvatar from '../../assets/default-avatar.jpg';
@@ -64,13 +61,10 @@ const Header = ({ onLoginClick, theme }) => {
     const baseItems = [
       { path: '/', label: 'Home', icon: <FiHome /> },
       { path: '/course', label: 'Courses', icon: <FiBook /> },
-      { path: '/resources', label: 'Resources', icon: <FiFileText /> },
+      { path: '#', label: 'Resources', icon: <FiFileText /> },
       { path: '/blogpage', label: 'Blog', icon: <FiBookmark /> },
-      { path: '/event', label: 'Event', icon: <FiBook /> },
+      { path: '#', label: 'Event', icon: <FiBook /> },
     ];
-    if (!isLoggedIn) {
-      return [...baseItems, { path: '/login', label: 'LOGIN', icon: <FaSignInAlt /> }];
-    }
     return baseItems;
   };
 
@@ -78,164 +72,38 @@ const Header = ({ onLoginClick, theme }) => {
 
   const handleSignInClick = () => {
     if (onLoginClick) onLoginClick();
+    closeAllMenus();
     navigate('/');
   };
 
   const styles = {
-    headerWrapper: {
-      backgroundColor: 'rgba(255, 255, 255, 0.98)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 1000,
-      backdropFilter: 'blur(10px)',
-      height: '80px',
-      display: 'flex',
-      alignItems: 'center',
-      width: '100%',
-    },
-    mainNav: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '0 24px',
-      width: '100%',
-      maxWidth: '1440px',
-      margin: '0 auto',
-    },
-    logoContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      textDecoration: 'none',
-      gap: '1px',
-    },
+    // ... all other styles remain the same
+    // headerWrapper: { backgroundColor: 'rgba(255, 255, 255, 0.98)', position: 'sticky', top: 0, zIndex: 1100, backdropFilter: 'blur(10px)', height: '80px', display: 'flex', alignItems: 'center', width: '100%' },
+    headerWrapper: { backgroundColor: 'rgba(255, 255, 255, 0.98)', position: 'sticky', top: 0, zIndex: 1100, backdropFilter: 'blur(10px)', height: '80px', display: 'flex', alignItems: 'center', width: '100%' },
+    mainNav: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 24px', width: '100%', maxWidth: '1440px', margin: '0 auto' },
+    logoContainer: { display: 'flex', alignItems: 'center', textDecoration: 'none', gap: '1px' },
+    // logoImage: { height: '100px', width: 'auto', maxHeight: '180px' },
     logoImage: {
-      height: '135px',
-      width: 'auto',
-      maxHeight: '180px',
-    },
-    logoText: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      color: '#333',
-    },
-    desktopNavLinks: {
-      display: isTablet ? 'none' : 'flex',
-      gap: '32px',
-      alignItems: 'center',
-    },
-    desktopNavLink: (active) => ({
-      color: active ? theme.colors.primary : '#222',
-      textDecoration: 'none',
-      fontWeight: '500',
-      fontSize: '15px',
-      position: 'relative',
-      padding: '8px 0',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-    }),
-    rightMenu: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '16px'
-    },
-    mobileMenuButton: {
-      display: isTablet ? 'flex' : 'none',
-      backgroundColor: 'transparent',
-      border: 'none',
-      fontSize: '24px',
-      cursor: 'pointer',
-      padding: '8px',
-      zIndex: 1001,
-      color: isMobileMenuOpen ? '#fff' : '#222',
-      position: isMobileMenuOpen ? 'fixed' : 'relative',
-      top: isMobileMenuOpen ? '24px' : 'auto',
-      right: isMobileMenuOpen ? '24px' : 'auto',
-    },
-    mobileMenuOverlay: {
-      position: 'fixed',
-      top: '80px',
-      left: 0,
-      right: 0,
-      backgroundColor: '#ffffff',
-      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-      borderBottomLeftRadius: '16px',
-      borderBottomRightRadius: '16px',
-      padding: '24px',
-      zIndex: 999,
-      transform: isMobileMenuOpen ? 'translateY(0)' : 'translateY(-120%)',
-      transition: 'transform 0.3s ease-in-out',
-    },
-    mobileNavLink: {
-      color: '#222',
-      fontSize: '18px',
-      fontWeight: '500',
-      textDecoration: 'none',
-      padding: '12px 0',
-      width: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-    },
-    authButton: {
-      backgroundColor: 'transparent',
-      color: theme.colors.primary,
-      padding: '8px 16px',
-      borderRadius: '6px',
-      border: `1px solid ${theme.colors.primary}`,
-      fontWeight: '500',
-      cursor: 'pointer',
-      fontSize: '14px',
-    },
-    profileButton: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      backgroundColor: 'transparent',
-      border: 'none',
-      cursor: 'pointer',
-      padding: '4px 8px 4px 4px',
-      borderRadius: '24px',
-    },
-    profileImage: {
-      width: '36px',
-      height: '36px',
-      borderRadius: '50%',
-      objectFit: 'cover',
-      border: '2px solid rgba(255, 255, 255, 0.5)',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    },
-    profileName: {
-      fontSize: '14px',
-      fontWeight: '500',
-      color: '#222'
-    },
-    dropdown: {
-      position: 'absolute',
-      top: 'calc(100% + 8px)',
-      right: 0,
-      backgroundColor: '#fff',
-      borderRadius: '12px',
-      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-      padding: '8px 0',
-      minWidth: '240px',
-      zIndex: 1100,
-      border: '1px solid rgba(0, 0, 0, 0.05)',
-    },
-    dropdownItem: {
-      padding: '12px 16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      color: '#333',
-      textDecoration: 'none',
-      fontSize: '14px',
-    },
-    dropdownDivider: {
-      height: '1px',
-      backgroundColor: 'rgba(0, 0, 0, 0.05)',
-      margin: '8px 0'
-    },
+  height: '100px',
+  width: '100px', // Increase this value as needed
+  maxWidth: '100%', // Ensures responsiveness
+  maxHeight: '100px',
+  objectFit: 'contain', 
+},
+    logoText: { fontSize: '24px', fontWeight: 'bold', color: '#333' },
+    desktopNavLinks: { display: isTablet ? 'none' : 'flex', gap: '32px', alignItems: 'center' },
+    desktopNavLink: (active) => ({ color: active ? theme.colors.primary : '#222', textDecoration: 'none', fontWeight: '500', fontSize: '15px', position: 'relative', padding: '8px 0', display: 'flex', alignItems: 'center', gap: '8px' }),
+    rightMenu: { display: 'flex', alignItems: 'center', gap: '16px' },
+    mobileMenuButton: { backgroundColor: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer', padding: '8px', zIndex: 1, color: '#222' },
+    mobileMenuOverlay: { position: 'fixed', top: '50px', left: 0, right: 0, backgroundColor: '#ffffff', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', padding: '24px', zIndex: 1100, transform: isMobileMenuOpen ? 'translateY(0)' : 'translateY(-120%)', transition: 'transform 0.3s ease-in-out' },
+    mobileNavLink: { color: '#222', fontSize: '18px', fontWeight: '500', textDecoration: 'none', padding: '12px 0', width: '100%', display: 'flex', alignItems: 'center', gap: '12px' },
+    loginButton: { backgroundColor: '#007bff', color: 'white', padding: '10px 20px', borderRadius: '8px', border: 'none', fontWeight: '500', cursor: 'pointer', fontSize: '14px' },
+    profileButton: { display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '24px' },
+    profileImage: { width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' },
+    profileName: { fontSize: '14px', fontWeight: '500', color: '#222' },
+    dropdown: { position: 'absolute', top: 'calc(100% + 12px)', right: 0, backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)', padding: '8px 0', minWidth: '240px', zIndex: 1100, border: '1px solid rgba(0, 0, 0, 0.05)' },
+    dropdownItem: { padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px', color: '#333', textDecoration: 'none', fontSize: '14px' },
+    dropdownDivider: { height: '1px', backgroundColor: 'rgba(0, 0, 0, 0.05)', margin: '8px 0' },
   };
 
   return (
@@ -243,21 +111,13 @@ const Header = ({ onLoginClick, theme }) => {
       <header style={styles.headerWrapper}>
         <nav style={styles.mainNav}>
           <Link to="/" style={styles.logoContainer} onClick={closeAllMenus}>
-            <img
-              src="https://i.postimg.cc/cLL594qN/Untitled-design-1.png"
-              alt="Learnly Logo"
-              style={styles.logoImage}
-            />
+            <img src="/Logo.png" alt="Learnly Logo" style={styles.logoImage} />
             {!isMobile && <h1 style={styles.logoText}></h1>}
           </Link>
 
           <div style={styles.desktopNavLinks}>
             {navItems.map(item => (
-              <Link
-                key={item.path}
-                to={item.path}
-                style={styles.desktopNavLink(isActive(item.path))}
-              >
+              <Link key={item.path} to={item.path} style={styles.desktopNavLink(isActive(item.path))}>
                 {React.cloneElement(item.icon, { size: 16 })}
                 <span>{item.label}</span>
               </Link>
@@ -265,34 +125,32 @@ const Header = ({ onLoginClick, theme }) => {
           </div>
 
           <div style={styles.rightMenu}>
+            {/* ====== NEW LOGIC START ====== */}
             {isLoggedIn ? (
+              // If LOGGED IN, show profile icon (on ALL screen sizes)
               <div style={{ position: 'relative' }} ref={profileRef}>
                 <button
                   style={styles.profileButton}
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
                 >
                   <img src={getUserPhoto()} alt="Profile" style={styles.profileImage} />
-                  {!isMobile && <span style={styles.profileName}>{getDisplayName()}</span>}
-                  <FiChevronDown size={16} />
+                  {/* Only show name and chevron on desktop */}
+                  {!isTablet && (
+                    <>
+                      <span style={styles.profileName}>{getDisplayName()}</span>
+                      <FiChevronDown size={16} />
+                    </>
+                  )}
                 </button>
                 {isProfileOpen && (
                   <div style={styles.dropdown}>
-                    <div style={{ padding: '12px 16px', fontWeight: 600 }}>
-                      {userData?.email}
-                    </div>
+                    <div style={{ padding: '12px 16px', fontWeight: 600 }}>{userData?.email}</div>
                     <div style={styles.dropdownDivider} />
                     <Link to="/dashboard" style={styles.dropdownItem} onClick={closeAllMenus}>
                       <FiUser size={16} /> Dashboard
                     </Link>
                     <button
-                      style={{
-                        ...styles.dropdownItem,
-                        width: '100%',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: '#e74c3c'
-                      }}
+                      style={{ ...styles.dropdownItem, width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: '#e74c3c' }}
                       onClick={handleLogout}
                     >
                       <FiLogOut size={16} /> Sign out
@@ -301,38 +159,38 @@ const Header = ({ onLoginClick, theme }) => {
                 )}
               </div>
             ) : (
-              !isTablet && (
-                <button style={styles.authButton} onClick={handleSignInClick}>
-                  Sign in
-                </button>
-              )
+              // If LOGGED OUT, show Login button (on ALL screen sizes)
+              <button onClick={handleSignInClick} style={styles.loginButton}>
+                Login
+              </button>
             )}
 
-            <button style={styles.mobileMenuButton} onClick={toggleMobileMenu}>
-              {isMobileMenuOpen ? <FiX /> : <FiMenu />}
-            </button>
+            {/* Always show hamburger menu on tablet/mobile */}
+            {isTablet && (
+              <button style={styles.mobileMenuButton} onClick={toggleMobileMenu}>
+                {isMobileMenuOpen ? <FiX /> : <FiMenu />}
+              </button>
+            )}
+            {/* ====== NEW LOGIC END ====== */}
           </div>
         </nav>
       </header>
 
+      {/* Mobile Menu Overlay - Cleaned up */}
       <div ref={mobileMenuRef} style={styles.mobileMenuOverlay}>
+        {/* Nav items are always visible */}
         {navItems.map(item => (
-          <Link
-            key={item.path}
-            to={item.path}
-            style={styles.mobileNavLink}
-            onClick={closeAllMenus}
-          >
+          <Link key={item.path} to={item.path} style={styles.mobileNavLink} onClick={closeAllMenus}>
             {item.icon}
             <span>{item.label}</span>
           </Link>
         ))}
+        {/* The Dashboard/Sign Out links are removed from here */}
       </div>
     </>
   );
 };
 
-// Hook to handle outside click
 const useOutsideClick = (ref, callback) => {
   useEffect(() => {
     const handleClickOutside = (event) => {
