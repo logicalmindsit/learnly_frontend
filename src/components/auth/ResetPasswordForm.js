@@ -14,14 +14,17 @@ import {
 import LockIcon from '@mui/icons-material/Lock';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import SecurityIcon from '@mui/icons-material/Security';
 
 const ResetPasswordForm = ({ userIdentifier, onPasswordReset, onError }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleClickShowPassword = () => setShowPassword(!showPassword);
+  const handleClickShowConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
   const handleMouseDownPassword = (event) => event.preventDefault();
 
   const handleSubmit = async (e) => {
@@ -46,90 +49,148 @@ const ResetPasswordForm = ({ userIdentifier, onPasswordReset, onError }) => {
   };
 
   return (
-    <Paper elevation={3} sx={{ 
-      maxWidth: 450,
-      mx: 'auto',
-      p: 4,
-      borderRadius: 3,
-      boxShadow: '0px 10px 25px rgba(0, 0, 0, 0.08)'
-    }}>
-      <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ 
-        fontWeight: 600,
-        color: 'primary.main',
-        mb: 2
-      }}>
-        Reset Password
-      </Typography>
-      
-      <Typography variant="body1" align="center" sx={{ mb: 3, color: 'text.secondary' }}>
-        Create a new password for your account
-      </Typography>
-      
-      <Box component="form" onSubmit={handleSubmit}>
-        <TextField
-          margin="normal"
-          required
-          fullWidth
-          name="newPassword"
-          label="New Password"
-          type={showPassword ? 'text' : 'password'}
-          id="newPassword"
-          autoComplete="new-password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          sx={{ mb: 2 }}
-          InputProps={{
-            startAdornment: <LockIcon sx={{ mr: 1, color: 'action.active' }} />,
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label="toggle password visibility"
-                  onClick={handleClickShowPassword}
-                  onMouseDown={handleMouseDownPassword}
-                  edge="end"
-                >
-                  {showPassword ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        />
-        
-        <TextField
-          margin="normal"
-          required
-          fullWidth
-          name="confirmPassword"
-          label="Confirm New Password"
-          type={showPassword ? 'text' : 'password'}
-          id="confirmPassword"
-          autoComplete="new-password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          sx={{ mb: 3 }}
-          InputProps={{
-            startAdornment: <LockIcon sx={{ mr: 1, color: 'action.active' }} />,
-          }}
-        />
-        
-        <Button
-          type="submit"
-          fullWidth
-          variant="contained"
-          size="large"
-          sx={{ 
-            py: 1.5,
-            borderRadius: 2,
-            fontSize: '1rem',
-            fontWeight: 600,
-            textTransform: 'none'
-          }}
-          disabled={loading || !newPassword || newPassword !== confirmPassword}
-        >
-          {loading ? <CircularProgress size={24} color="inherit" /> : 'Update Password'}
-        </Button>
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 2
+      }}
+    >
+      <Paper 
+        elevation={1}
+        sx={{ 
+          maxWidth: 350,
+          width: '100%',
+          p: 3,
+          borderRadius: 2,
+          border: '1px solid #e0e0e0'
+        }}
+      >
+          {/* Icon and Title Section */}
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <SecurityIcon 
+              sx={{ 
+                fontSize: '2.5rem', 
+                color: '#1976d2',
+                mb: 1
+              }} 
+            />
+            
+            <Typography 
+              variant="h5" 
+              component="h1" 
+              sx={{ 
+                fontWeight: 600,
+                color: '#1976d2',
+                mb: 1
+              }}
+            >
+              Reset Password
+            </Typography>
+            
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#666'
+              }}
+            >
+              Create a new password
+            </Typography>
+          </Box>
+          
+          <Box component="form" onSubmit={handleSubmit}>
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="newPassword"
+              placeholder="Enter new password"
+              type={showPassword ? 'text' : 'password'}
+              id="newPassword"
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockIcon sx={{ color: '#666' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+              sx={{ mb: 2 }}
+            />
+            
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="confirmPassword"
+              placeholder="Confirm new password"
+              type={showConfirmPassword ? 'text' : 'password'}
+              id="confirmPassword"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockIcon sx={{ color: '#666' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle confirm password visibility"
+                      onClick={handleClickShowConfirmPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+              sx={{ mb: 3 }}
+            />
+            
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              disabled={loading || !newPassword || newPassword !== confirmPassword}
+              sx={{ 
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 600
+              }}
+            >
+              {loading ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={20} color="inherit" />
+                  <span>Updating...</span>
+                </Box>
+              ) : (
+                'Update Password'
+              )}
+            </Button>
+          </Box>
+        </Paper>
       </Box>
-    </Paper>
   );
 };
 

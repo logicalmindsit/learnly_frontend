@@ -2,42 +2,273 @@
 <html lang="en">   
   <head>   
     <meta charset="utf-8" />   
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />   
-    <meta name="viewport" content="width=device-width, initial-scale=1" />   
-    <meta name="theme-color" content="#000000" />   
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
+    <link rel="icon" href="/learnly.png" />   
+    
+    <!-- Enhanced Mobile Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=yes, maximum-scale=5" />   
+    <meta name="theme-color" content="#0ea5e9" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="LEARNLY" />
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Master ancient healing arts with IRAI ARAM - Your gateway to Siddha, Varma, Ayurveda, and holistic wellness education. Learn from certified masters with world-class online courses." />
+    <meta name="keywords" content="Siddha medicine, Varma therapy, Ayurveda, traditional healing, holistic wellness, online courses, ancient medicine, natural healing" />
+    <meta name="author" content="LEARNLY" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Social Media Meta Tags -->
+    <meta property="og:title" content="LEARNLY - Master Ancient Healing Arts" />
+    <meta property="og:description" content="Transform your life with authentic traditional healing knowledge. Learn Siddha, Varma, and Ayurveda from certified masters." />
+    <meta property="og:image" content="/learnly.png" />
+    <meta property="og:url" content="https://iraiaram.com" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="LEARNLY" />
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="LEARNLY - Master Ancient Healing Arts" />
+    <meta name="twitter:description" content="Transform your life with authentic traditional healing knowledge." />
+    <meta name="twitter:image" content="/learnly.png" />
+    
+    <!-- Preconnect for performance optimization -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    
+    <!-- Optimized Google Fonts Loading with font-display: swap for better performance -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&family=Poppins:wght@100;200;300;400;500;600;700;800;900&family=Fira+Code:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&family=Poppins:wght@100;200;300;400;500;600;700;800;900&family=Fira+Code:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'" />
+    
+    <!-- Fallback for browsers that don't support preload -->
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&family=Poppins:wght@100;200;300;400;500;600;700;800;900&family=Fira+Code:wght@300;400;500;600;700&display=swap" />
+    </noscript>
+    
+    <!-- Apple Touch Icons for various devices -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/learnly.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/learnly.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="/learnly.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/learnly.png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="/learnly.png" />
+    <link rel="apple-touch-icon" sizes="76x76" href="/learnly.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="/learnly.png" />
+    <link rel="apple-touch-icon" sizes="60x60" href="/learnly.png" />
+    <link rel="apple-touch-icon" sizes="57x57" href="/learnly.png" />
+    
+    <!-- Favicon variations -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/learnly.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/learnly.png" />
+    <link rel="shortcut icon" href="/learnly.png" />
+    
+    <!-- Manifest for PWA -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
-
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>IRAI ARAM</title>
+    
+    <!-- Performance Optimization -->
+    <link rel="preload" href="%PUBLIC_URL%/static/js/bundle.js" as="script" />
+    <link rel="preload" href="%PUBLIC_URL%/static/css/main.css" as="style" />
+    
+    <!-- CSS for font loading optimization -->
+    <style>
+      /* Critical CSS for font loading */
+      html {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      }
+      
+      /* Prevent layout shift during font loading */
+      .font-loading {
+        font-display: swap;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      }
+      
+      /* Loading state styles */
+      .loading-skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+      }
+      
+      @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+      
+      /* Mobile-first responsive base */
+      * {
+        box-sizing: border-box;
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        scroll-behavior: smooth;
+        overflow-x: hidden;
+      }
+      
+      /* Prevent horizontal scroll on mobile */
+      html, body {
+        max-width: 100vw;
+        overflow-x: hidden;
+      }
+      
+      /* Optimize for mobile touch */
+      a, button {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+      }
+      
+      /* Smooth scrolling for Safari */
+      @supports (-webkit-overflow-scrolling: touch) {
+        body {
+          -webkit-overflow-scrolling: touch;
+        }
+      }
+    </style>
+    
+    <!-- Enhanced Page Title -->
+    <title>LEARNLY - Master Ancient Healing Arts | Siddha, Varma & Ayurveda Courses</title>
   </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+  
+  <body class="font-loading">
+    <!-- Graceful degradation for no JavaScript -->
+    <noscript>
+      <div style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #0ea5e9, #22c55e);
+        color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Inter', sans-serif;
+        z-index: 9999;
+        text-align: center;
+        padding: 2rem;
+      ">
+        <h1 style="font-size: 2rem; margin-bottom: 1rem;">LEARNLY</h1>
+        <p style="font-size: 1.1rem; margin-bottom: 2rem; max-width: 600px;">
+          You need to enable JavaScript to run this app and access our world-class ancient healing courses.
+        </p>
+        <p style="font-size: 0.9rem; opacity: 0.8;">
+          Please enable JavaScript in your browser settings and refresh the page.
+        </p>
+      </div>
+    </noscript>
+    
+    <!-- Loading spinner for better UX -->
+    <div id="initial-loader" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.95), rgba(34, 197, 94, 0.95));
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', sans-serif;
+      z-index: 9998;
+    ">
+      <div style="
+        width: 60px;
+        height: 60px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top: 3px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1rem;
+      "></div>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600;">LEARNLY</h2>
+      <p style="font-size: 0.9rem; opacity: 0.9;">Loading ancient wisdom...</p>
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+    </div>
+    
+    <!-- Main React Application -->
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+    
+    <!-- Script to hide loader when app is ready -->
+    <script>
+      // Hide loader when the app is ready
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          const loader = document.getElementById('initial-loader');
+          if (loader) {
+            loader.style.opacity = '0';
+            loader.style.transition = 'opacity 0.5s ease-out';
+            setTimeout(function() {
+              loader.style.display = 'none';
+            }, 500);
+          }
+        }, 1000); // Minimum loading time for better UX
+      });
+      
+      // Enhanced font loading detection
+      if ('fonts' in document) {
+        Promise.all([
+          document.fonts.load('400 1em Inter'),
+          document.fonts.load('600 1em Inter'),
+          document.fonts.load('700 1em Inter'),
+          document.fonts.load('400 1em Poppins'),
+          document.fonts.load('600 1em Poppins'),
+          document.fonts.load('400 1em "Playfair Display"')
+        ]).then(function() {
+          document.body.classList.add('fonts-loaded');
+        }).catch(function() {
+          // Fallback if font loading fails
+          document.body.classList.add('fonts-failed');
+        });
+      }
+      
+      // Service Worker Registration for PWA (optional)
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              console.log('SW registered: ', registration);
+            })
+            .catch(function(registrationError) {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+      
+      // Performance monitoring
+      if ('performance' in window) {
+        window.addEventListener('load', function() {
+          setTimeout(function() {
+            const perfData = performance.timing;
+            const loadTime = perfData.loadEventEnd - perfData.navigationStart;
+            console.log('Page load time: ' + loadTime + 'ms');
+          }, 0);
+        });
+      }
+      
+      // Viewport height fix for mobile browsers
+      function setVH() {
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', vh + 'px');
+      }
+      
+      setVH();
+      window.addEventListener('resize', setVH);
+      window.addEventListener('orientationchange', function() {
+        setTimeout(setVH, 100);
+      });
+    </script>
   </body>
 </html>

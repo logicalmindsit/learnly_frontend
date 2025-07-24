@@ -14,7 +14,8 @@ import PaymentPages from "./pages/Payment/User-Paymentpage.js";
 import CoursePage from "./pages/Course/CourseDetail.js";
 
 import ExamRecord from "./pages/Dashboard/ExamRecord.js";
-import BlogPage from "./pages/Homepage/Blog.js";
+import EnhancedBlog from "./pages/Homepage/EnhancedBlog.js";
+import BlogPostDetail from "./pages/Homepage/BlogPostDetail.js";
 import PurchasedCourses from "./pages/Dashboard/LessonStatus.js";
 
 
@@ -37,7 +38,9 @@ function App() {
         <Route path="/course/:courseId/payment" element={<PaymentPage />} />
         <Route path="/payment" element={<PaymentPages />} />
         <Route path="/Examrecord" element={<ExamRecord />} />
-        <Route path="/blogpage" element={<BlogPage />} />
+        <Route path="/blogpage" element={<EnhancedBlog />} />
+        <Route path="/blog" element={<EnhancedBlog />} />
+        <Route path="/blog/:id" element={<BlogPostDetail />} />
         <Route path="/lesson-status" element={<PurchasedCourses />} />
 
       </Route>

@@ -1,18 +1,20 @@
 // src/services/authService.js
-import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_BASE_URL;
+import api from '../../service/api';
 
 const register = (data) => {
-  return axios.post(`${API_URL}/register`, data);
+  return api.post('/register', data);
 };
 
 const verifyOtp = (data) => {
-  return axios.post(`${API_URL}/verify-otp`, data);
+  return api.post('/verify-otp', data);
+};
+
+const resendOtp = (data) => {
+  return api.post('/resend-otp', data);
 };
 
 const createPassword = (data) => {
-  return axios.post(`${API_URL}/create-password`, data);
+  return api.post('/create-password', data);
 };
 
 const saveProfileData = (formData, userIdentifier) => {
@@ -20,7 +22,7 @@ const saveProfileData = (formData, userIdentifier) => {
   if (userIdentifier.mobile) formData.append('mobile', userIdentifier.mobile);
   
   // Change "/form" to "/register-form" here
-  return axios.post(`${API_URL}/form`, formData,   { 
+  return api.post('/form', formData,   { 
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -28,21 +30,21 @@ const saveProfileData = (formData, userIdentifier) => {
 };
 
 const login = (data) => {
-  return axios.post(`${API_URL}/login`, data);
+  return api.post('/login', data);
 };
 
 // --- FORGOT PASSWORD ---
 const forgotPasswordRequest = (data) => {
-  return axios.post(`${API_URL}/forgot-password`, data);
+  return api.post('/forgot-password', data);
 };
 
 const verifyForgotPasswordOtp = (data) => {
-  return axios.post(`${API_URL}/verify-forgot-password-otp`, data);
+  return api.post('/verify-forgot-password-otp', data);
 };
 
 // Renaming frontend function for clarity, maps to backend's ForgotResetPassword
 const resetPassword = (data) => {
-  return axios.post(`${API_URL}/reset-password`, data);
+  return api.post('/reset-password', data);
 };
 // --- END FORGOT PASSWORD ---
 
@@ -50,6 +52,7 @@ const resetPassword = (data) => {
 const authService = {
   register,
   verifyOtp,
+  resendOtp,
   createPassword,
   saveProfileData,
   login,

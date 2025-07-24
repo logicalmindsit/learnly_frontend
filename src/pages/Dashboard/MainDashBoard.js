@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiBook,
@@ -10,23 +10,122 @@ import {
   FiChevronRight
 } from "react-icons/fi";
 
+// Add Google Fonts
+const addGoogleFonts = () => {
+  const link = document.createElement('link');
+  link.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap';
+  link.rel = 'stylesheet';
+  if (!document.querySelector(`link[href="${link.href}"]`)) {
+    document.head.appendChild(link);
+  }
+};
+
 const MainDashBoard = () => {
   const navigate = useNavigate();
+  const [hoveredCard, setHoveredCard] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    // Add Google Fonts
+    addGoogleFonts();
+    
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    
+    // Get user name from localStorage or API with better formatting
+    const getUserName = () => {
+      const storedUserName = localStorage.getItem('userName');
+      const storedEmail = localStorage.getItem('userEmail');
+      const storedFirstName = localStorage.getItem('firstName');
+      const storedLastName = localStorage.getItem('lastName');
+      
+      if (storedFirstName && storedLastName) {
+        return `${storedFirstName} ${storedLastName}`;
+      } else if (storedUserName) {
+        return storedUserName;
+      } else if (storedEmail) {
+        // Extract name from email (before @)
+        return storedEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      }
+      return 'Student';
+    };
+    
+    setUserName(getUserName());
+    
+    return () => clearInterval(timer);
+  }, []);
 
   const items = [
-    { name: "Lesson Status", path: "/lesson-status", icon: <FiBook />, color: "#3b82f6" },
-    { name: "Performance Record", path: "#", icon: <FiTrendingUp />, color: "#10b981" },
-    { name: "Exam Mark Record", path: "/Examrecord", icon: <FiAward />, color: "#f59e0b" },
-    { name: "Practice Class Record", path: "#", icon: <FiActivity />, color: "#8b5cf6" },
-    { name: "Fees Record", path: "/payment", icon: <FiDollarSign />, color: "#ec4899" },
-    { name: "Profile", path: "/profile", icon: <FiUser />, color: "#6366f1" },
+    { 
+      name: "Lesson Status", 
+      path: "/lesson-status", 
+      icon: <FiBook />, 
+      color: "#4F46E5",
+      gradient: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
+      description: "Track your learning progress"
+    },
+    { 
+      name: "Performance Record", 
+      path: "#", 
+      icon: <FiTrendingUp />, 
+      color: "#059669",
+      gradient: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
+      description: "View your performance metrics"
+    },
+    { 
+      name: "Exam Mark Record", 
+      path: "/Examrecord", 
+      icon: <FiAward />, 
+      color: "#DC2626",
+      gradient: "linear-gradient(135deg, #DC2626 0%, #F59E0B 100%)",
+      description: "Check your exam results"
+    },
+    { 
+      name: "Practice Class Record", 
+      path: "#", 
+      icon: <FiActivity />, 
+      color: "#7C2D12",
+      gradient: "linear-gradient(135deg, #7C2D12 0%, #EA580C 100%)",
+      description: "Review practice sessions"
+    },
+    { 
+      name: "Fees Record", 
+      path: "/payment", 
+      icon: <FiDollarSign />, 
+      color: "#BE185D",
+      gradient: "linear-gradient(135deg, #BE185D 0%, #EC4899 100%)",
+      description: "Manage your payments"
+    },
+    { 
+      name: "Profile", 
+      path: "/profile", 
+      icon: <FiUser />, 
+      color: "#1E40AF",
+      gradient: "linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)",
+      description: "Update your profile"
+    },
   ];
 
-  const stats = [
-    { label: "Completed Lessons", value: "24/36", progress: 67 },
-    { label: "Average Score", value: "87%", progress: 87 },
-    { label: "Days Active", value: "28", progress: 78 },
-  ];
+
+
+  const formatTime = (date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
+
+  const formatDate = (date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
   const handleItemClick = (path) => {
     navigate(path);
@@ -35,42 +134,59 @@ const MainDashBoard = () => {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h1 style={styles.title}>Welcome Back, Student!</h1>
-        <p style={styles.subtitle}>Track your learning progress and achievements</p>
+        <div style={styles.welcomeSection}>
+          <h1 style={styles.title}>Welcome Back, {userName}! 👋</h1>
+          <p style={styles.subtitle}>Ready to continue your learning journey?</p>
+          <div style={styles.timeWidget}>
+            <span style={styles.currentTime}>{formatTime(currentTime)}</span>
+            <span style={styles.currentDate}>{formatDate(currentTime)}</span>
+          </div>
+        </div>
       </div>
       
       <div style={styles.contentWrapper}>
         <div style={styles.mainContent}>
-          <div style={styles.cardGrid}>
-            {items.map((item, index) => (
-              <div
-                key={index}
-                style={{...styles.card, borderLeft: `4px solid ${item.color}`}}
-                onClick={() => handleItemClick(item.path)}
-              >
-                <div style={{...styles.cardIcon, color: item.color, backgroundColor: `${item.color}20`}}>
-                  {item.icon}
+          {/* Main Cards Grid */}
+          <div style={styles.cardSection}>
+            <h3 style={styles.sectionTitle}>Dashboard Menu</h3>
+            <div style={styles.cardGrid}>
+              {items.map((item, index) => (
+                <div
+                  key={index}
+                  style={{
+                    ...styles.card,
+                    background: hoveredCard === index ? item.gradient : 'white',
+                    color: hoveredCard === index ? 'white' : '#1e293b',
+                    transform: hoveredCard === index ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)',
+                  }}
+                  onClick={() => handleItemClick(item.path)}
+                  onMouseEnter={() => setHoveredCard(index)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                >
+                  <div style={{
+                    ...styles.cardIcon,
+                    color: hoveredCard === index ? 'white' : item.color,
+                    backgroundColor: hoveredCard === index ? 'rgba(255,255,255,0.2)' : `${item.color}15`,
+                  }}>
+                    {item.icon}
+                  </div>
+                  <div style={styles.cardContent}>
+                    <div style={styles.cardText}>{item.name}</div>
+                    <div style={{
+                      ...styles.cardDescription,
+                      color: hoveredCard === index ? 'rgba(255,255,255,0.8)' : '#64748b'
+                    }}>
+                      {item.description}
+                    </div>
+                  </div>
+                  <div style={{
+                    ...styles.cardArrow,
+                    color: hoveredCard === index ? 'white' : '#94a3b8'
+                  }}>
+                    <FiChevronRight />
+                  </div>
                 </div>
-                <div style={styles.cardText}>{item.name}</div>
-                <div style={styles.cardArrow}>
-                  <FiChevronRight />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        <div style={styles.sideContent}>
-
-          
-          <div style={styles.imageCard}>
-            <img 
-              src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80" 
-              alt="Student studying" 
-              style={styles.image}
-            />
-            <div style={styles.imageOverlay}>
-              <p style={styles.overlayText}>Keep up the good work!</p>
+              ))}
             </div>
           </div>
         </div>
@@ -82,228 +198,285 @@ const MainDashBoard = () => {
 const styles = {
   container: {
     minHeight: '100vh',
-    background: 'linear-gradient(135deg, #f0f9ff 0%, #e6f0ff 100%)',
-    padding: '2rem 1rem',
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    background: '#f8fafc',
+    padding: '1rem',
+    fontFamily: "'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
   },
   header: {
     textAlign: 'center',
-    marginBottom: '3rem',
-    maxWidth: '800px',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    padding: '0 1rem',
+    marginBottom: '2rem',
+  },
+  welcomeSection: {
+    backgroundColor: 'white',
+    borderRadius: '24px',
+    padding: '2rem',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0',
+    maxWidth: '600px',
+    margin: '0 auto',
   },
   title: {
-    color: '#1e3a8a',
-    fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
+    color: '#1e1b4b',
+    fontSize: 'clamp(1.5rem, 4vw, 2.2rem)',
     fontWeight: '700',
     marginBottom: '0.5rem',
     lineHeight: '1.2',
-    background: 'linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%)',
+    fontFamily: "'Poppins', sans-serif",
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
   },
   subtitle: {
     color: '#64748b',
     fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
-    margin: '0',
+    margin: '0 0 1rem 0',
     lineHeight: '1.5',
+    fontFamily: "'Inter', sans-serif",
+    fontWeight: '400',
+  },
+  timeWidget: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '0.25rem',
+    marginTop: '1rem',
+  },
+  currentTime: {
+    fontSize: '1.5rem',
+    fontWeight: '600',
+    color: '#667eea',
+    fontFamily: "'Poppins', sans-serif",
+  },
+  currentDate: {
+    fontSize: '0.9rem',
+    color: '#64748b',
+    fontFamily: "'Inter', sans-serif",
+    fontWeight: '400',
   },
   contentWrapper: {
-    display: 'flex',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: '2rem',
     maxWidth: '1400px',
     margin: '0 auto',
-    alignItems: 'flex-start',
   },
   mainContent: {
-    flex: '1 1 600px',
-    maxWidth: '800px',
-  },
-  sideContent: {
-    flex: '1 1 300px',
-    maxWidth: '400px',
+    width: '100%',
     display: 'flex',
     flexDirection: 'column',
     gap: '2rem',
   },
+  sectionTitle: {
+    color: '#1e1b4b',
+    fontSize: '1.3rem',
+    fontWeight: '600',
+    marginBottom: '1rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    fontFamily: "'Poppins', sans-serif",
+  },
+  cardSection: {
+    backgroundColor: 'white',
+    borderRadius: '20px',
+    padding: '1.5rem',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0',
+  },
   cardGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '1.25rem',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gap: '1rem',
     width: '100%',
   },
   card: {
     display: 'flex',
     alignItems: 'center',
-    padding: '1.25rem',
-    borderRadius: '12px',
+    padding: '1.5rem',
+    borderRadius: '16px',
     cursor: 'pointer',
-    transition: 'all 0.3s ease',
+    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
     backgroundColor: 'white',
-    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-    borderLeft: '4px solid #3b82f6',
-    '&:hover': {
-      transform: 'translateY(-3px)',
-      boxShadow: '0 6px 12px rgba(0, 0, 0, 0.1)',
-    }
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    position: 'relative',
+    overflow: 'hidden',
   },
   cardIcon: {
-    fontSize: '1.25rem',
+    fontSize: '1.5rem',
     marginRight: '1rem',
     display: 'flex',
     alignItems: 'center',
-    padding: '0.75rem',
-    borderRadius: '8px',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    padding: '1rem',
+    borderRadius: '12px',
+    transition: 'all 0.3s ease',
+  },
+  cardContent: {
+    flexGrow: '1',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.25rem',
   },
   cardText: {
-    color: '#1e293b',
     fontWeight: '600',
-    fontSize: '1rem',
-    flexGrow: '1',
+    fontSize: '1.1rem',
+    transition: 'color 0.3s ease',
+    fontFamily: "'Poppins', sans-serif",
+  },
+  cardDescription: {
+    fontSize: '0.85rem',
+    transition: 'color 0.3s ease',
+    fontFamily: "'Inter', sans-serif",
+    fontWeight: '400',
   },
   cardArrow: {
-    color: '#94a3b8',
-    fontSize: '1.1rem',
+    fontSize: '1.2rem',
+    transition: 'all 0.3s ease',
   },
-  statsCard: {
-    backgroundColor: 'white',
-    borderRadius: '16px',
-    padding: '1.5rem',
-    width: '100%',
-    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-  },
-  statsTitle: {
-    color: '#1e3a8a',
-    fontSize: '1.25rem',
-    fontWeight: '600',
-    marginBottom: '1.5rem',
-    textAlign: 'center',
-  },
-  statItem: {
-    marginBottom: '1.25rem',
-  },
-  statInfo: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '0.5rem',
-  },
-  statLabel: {
-    color: '#64748b',
-    fontSize: '0.9rem',
-  },
-  statValue: {
-    color: '#1e3a8a',
-    fontWeight: '600',
-    fontSize: '1rem',
-  },
-  progressBar: {
-    height: '6px',
-    backgroundColor: '#e2e8f0',
-    borderRadius: '3px',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: '3px',
-  },
-  imageCard: {
-    position: 'relative',
-    borderRadius: '16px',
-    overflow: 'hidden',
-    boxShadow: '0 10px 15px rgba(0, 0, 0, 0.1)',
-  },
-  image: {
-    width: '100%',
-    height: 'auto',
-    display: 'block',
-  },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: '0',
-    left: '0',
-    right: '0',
-    background: 'linear-gradient(transparent, rgba(0, 0, 0, 0.7))',
-    padding: '1.5rem',
-    color: 'white',
-  },
-  overlayText: {
-    margin: '0',
-    fontSize: '1rem',
-    fontWeight: '500',
-  },
-  // Media queries for responsive design
+  
+  // Mobile Responsive Styles
   '@media (max-width: 1024px)': {
-    contentWrapper: {
-      flexDirection: 'column',
-      alignItems: 'center',
+    container: {
+      padding: '0.75rem',
     },
-    mainContent: {
-      width: '100%',
+    welcomeSection: {
       maxWidth: '100%',
+      padding: '1.5rem',
     },
-    sideContent: {
-      width: '100%',
-      maxWidth: '600px',
+    cardGrid: {
+      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+      gap: '1rem',
     },
   },
+  
   '@media (max-width: 768px)': {
     container: {
-      padding: '1.5rem 1rem',
+      padding: '0.5rem',
+    },
+    welcomeSection: {
+      padding: '1.25rem',
+      borderRadius: '16px',
+    },
+    title: {
+      fontSize: 'clamp(1.25rem, 5vw, 1.75rem)',
+    },
+    subtitle: {
+      fontSize: 'clamp(0.85rem, 3vw, 1rem)',
     },
     cardGrid: {
       gridTemplateColumns: '1fr',
+      gap: '0.75rem',
     },
-    statsCard: {
+    card: {
       padding: '1.25rem',
     },
+    cardIcon: {
+      padding: '0.75rem',
+      fontSize: '1.25rem',
+      marginRight: '0.75rem',
+    },
+    cardSection: {
+      padding: '1.25rem',
+      borderRadius: '16px',
+    },
+    sectionTitle: {
+      fontSize: '1.2rem',
+    },
   },
+  
   '@media (max-width: 480px)': {
     container: {
-      padding: '1rem 0.75rem',
+      padding: '0.25rem',
     },
-    header: {
-      marginBottom: '2rem',
+    welcomeSection: {
+      padding: '1rem',
+      borderRadius: '12px',
+      margin: '0 0.25rem',
     },
     title: {
-      fontSize: '1.5rem',
+      fontSize: 'clamp(1.1rem, 6vw, 1.5rem)',
+    },
+    subtitle: {
+      fontSize: 'clamp(0.8rem, 4vw, 0.95rem)',
+    },
+    timeWidget: {
+      marginTop: '0.75rem',
+    },
+    currentTime: {
+      fontSize: '1.25rem',
+    },
+    currentDate: {
+      fontSize: '0.8rem',
+    },
+    cardSection: {
+      margin: '0 0.25rem',
+      padding: '1rem',
+      borderRadius: '12px',
     },
     card: {
       padding: '1rem',
+      borderRadius: '12px',
     },
     cardIcon: {
       padding: '0.5rem',
+      fontSize: '1.1rem',
+      marginRight: '0.5rem',
+    },
+    cardText: {
       fontSize: '1rem',
-      marginRight: '0.75rem',
+    },
+    cardDescription: {
+      fontSize: '0.8rem',
+    },
+    sectionTitle: {
+      fontSize: '1.1rem',
+      textAlign: 'center',
+    },
+  },
+  
+  '@media (max-width: 360px)': {
+    container: {
+      padding: '0.125rem',
+    },
+    welcomeSection: {
+      padding: '0.75rem',
+      margin: '0 0.125rem',
+    },
+    title: {
+      fontSize: '1.1rem',
+    },
+    subtitle: {
+      fontSize: '0.75rem',
+    },
+    currentTime: {
+      fontSize: '1.1rem',
+    },
+    currentDate: {
+      fontSize: '0.75rem',
+    },
+    cardSection: {
+      margin: '0 0.125rem',
+      padding: '0.75rem',
+    },
+    card: {
+      padding: '0.75rem',
+      gap: '0.5rem',
+    },
+    cardIcon: {
+      padding: '0.4rem',
+      fontSize: '1rem',
+      marginRight: '0.4rem',
     },
     cardText: {
       fontSize: '0.9rem',
     },
+    cardDescription: {
+      fontSize: '0.75rem',
+    },
+    cardArrow: {
+      fontSize: '1rem',
+    },
+    sectionTitle: {
+      fontSize: '1rem',
+    },
   }
 };
-
-// Apply styles as CSS (since we can't use CSS-in-JS directly in this environment)
-const styleSheet = document.createElement("style");
-styleSheet.type = "text/css";
-styleSheet.innerText = Object.entries(styles).map(([selector, rules]) => {
-  if (selector.startsWith('@media')) {
-    const mediaQuery = selector;
-    const mediaRules = Object.entries(rules).map(([subSelector, subRules]) => {
-      return `${subSelector} { ${Object.entries(subRules).map(([prop, value]) => `${prop}: ${value};`).join(' ')} }`;
-    }).join(' ');
-    return `${mediaQuery} { ${mediaRules} }`;
-  } else if (selector.startsWith('&')) {
-    return `.dashboard ${selector} { ${Object.entries(rules).map(([prop, value]) => `${prop}: ${value};`).join(' ')} }`;
-  } else {
-    return `.dashboard ${selector} { ${Object.entries(rules).map(([prop, value]) => `${prop}: ${value};`).join(' ')} }`;
-  }
-}).join(' ');
-document.head.appendChild(styleSheet);
 
 export default MainDashBoard;

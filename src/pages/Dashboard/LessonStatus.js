@@ -10,20 +10,155 @@ import {
   Chip,
   Skeleton,
   Link,
+  Container,
+  IconButton,
+  Avatar,
+  LinearProgress,
+  Fade,
+  Zoom,
 } from "@mui/material";
+import { styled } from '@mui/material/styles';
 import StarIcon from "@mui/icons-material/Star";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { FiArrowLeft } from 'react-icons/fi';
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PersonIcon from "@mui/icons-material/Person";
+import SchoolIcon from "@mui/icons-material/School";
+import { FiArrowLeft, FiBook, FiClock, FiStar, FiUsers } from 'react-icons/fi';
 
+// Modern Design System
 const theme = {
   colors: {
-    primary: '#0862F7',
-    text: '#696984',
-    lightBlueBg: '#F0F6FF',
-    border: '#E9EAF0',
+    primary: '#2563eb',
+    primaryLight: '#3b82f6',
+    primaryDark: '#1d4ed8',
+    secondary: '#f59e0b',
+    accent: '#10b981',
+    text: {
+      primary: '#1e293b',
+      secondary: '#64748b',
+      muted: '#94a3b8',
+    },
+    background: {
+      primary: '#ffffff',
+      secondary: '#f8fafc',
+      tertiary: '#f1f5f9',
+    },
+    success: '#059669',
+    warning: '#d97706',
+    error: '#dc2626',
+    border: '#e2e8f0',
+    shadow: 'rgba(15, 23, 42, 0.08)',
+  },
+  spacing: {
+    xs: '0.5rem',
+    sm: '1rem',
+    md: '1.5rem',
+    lg: '2rem',
+    xl: '3rem',
+  },
+  borderRadius: {
+    sm: '0.5rem',
+    md: '0.75rem',
+    lg: '1rem',
+    xl: '1.5rem',
+  },
+  shadows: {
+    sm: '0 1px 2px 0 rgba(15, 23, 42, 0.05)',
+    md: '0 4px 6px -1px rgba(15, 23, 42, 0.1)',
+    lg: '0 10px 15px -3px rgba(15, 23, 42, 0.1)',
+    xl: '0 20px 25px -5px rgba(15, 23, 42, 0.1)',
   },
 };
+
+// Styled Components
+const StyledContainer = styled(Container)(({ theme }) => ({
+  minHeight: '100vh',
+  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+  padding: '1rem',
+  [theme.breakpoints.up('md')]: {
+    padding: '2rem',
+  },
+}));
+
+const BackButton = styled(IconButton)(({ theme, ismobile }) => ({
+  background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+  border: `2px solid ${theme.colors?.border || '#e2e8f0'}`,
+  borderRadius: '50%',
+  width: ismobile === 'true' ? '48px' : '56px',
+  height: ismobile === 'true' ? '48px' : '56px',
+  boxShadow: theme.colors?.shadows?.md || '0 4px 6px -1px rgba(15, 23, 42, 0.1)',
+  color: theme.colors?.primary || '#2563eb',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  '&:hover': {
+    background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+    transform: 'translateY(-2px) scale(1.05)',
+    boxShadow: theme.colors?.shadows?.lg || '0 10px 15px -3px rgba(15, 23, 42, 0.1)',
+    borderColor: theme.colors?.primary || '#2563eb',
+  },
+  '&:active': {
+    transform: 'translateY(0) scale(1.02)',
+  },
+}));
+
+const ModernCard = styled(Card)(({ theme, ismobile }) => ({
+  background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+  borderRadius: theme.colors?.borderRadius?.xl || '1.5rem',
+  border: `1px solid ${theme.colors?.border || '#e2e8f0'}`,
+  boxShadow: theme.colors?.shadows?.md || '0 4px 6px -1px rgba(15, 23, 42, 0.1)',
+  overflow: 'hidden',
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+  cursor: 'pointer',
+  position: 'relative',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '4px',
+    background: `linear-gradient(90deg, ${theme.colors?.primary || '#2563eb'} 0%, ${theme.colors?.primaryLight || '#3b82f6'} 100%)`,
+    transform: 'scaleX(0)',
+    transformOrigin: 'left',
+    transition: 'transform 0.3s ease',
+  },
+  '&:hover': {
+    transform: 'translateY(-8px)',
+    boxShadow: theme.colors?.shadows?.xl || '0 20px 25px -5px rgba(15, 23, 42, 0.1)',
+    borderColor: theme.colors?.primary || '#2563eb',
+    '&::before': {
+      transform: 'scaleX(1)',
+    },
+  },
+  minHeight: ismobile === 'true' ? '380px' : '420px',
+}));
+
+const GradientChip = styled(Chip)(({ bgcolor, textcolor }) => ({
+  background: bgcolor || 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+  color: textcolor || '#ffffff',
+  fontWeight: 700,
+  fontSize: '0.875rem',
+  padding: '0.5rem 1rem',
+  borderRadius: '2rem',
+  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+  border: 'none',
+  '& .MuiChip-label': {
+    padding: '0 0.5rem',
+  },
+}));
+
+const StatsBox = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  padding: '0.5rem 0.75rem',
+  backgroundColor: theme.colors?.background?.tertiary || '#f1f5f9',
+  borderRadius: theme.colors?.borderRadius?.md || '0.75rem',
+  transition: 'all 0.2s ease',
+}));
 
 const PurchasedCourses = () => {
   const [courses, setCourses] = useState([]);
@@ -68,231 +203,377 @@ const PurchasedCourses = () => {
     }
   }, [userId, token]);
 
-  const backButtonStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'transparent',
-    border: `1px solid ${theme.colors.border}`,
-    color: theme.colors.text,
-    borderRadius: '50%',
-    width: isMobile ? '40px' : '48px',
-    height: isMobile ? '40px' : '48px',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease-in-out',
-    '&:hover': {
-      backgroundColor: theme.colors.lightBlueBg,
-      borderColor: theme.colors.primary,
-      color: theme.colors.primary,
-      transform: 'scale(1.05)'
-    }
-  };
+  const LoadingSkeleton = () => (
+    <StyledContainer maxWidth="xl">
+      {/* Header Skeleton */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+        <Skeleton 
+          variant="circular" 
+          width={isMobile ? 48 : 56} 
+          height={isMobile ? 48 : 56}
+          sx={{ backgroundColor: 'rgba(37, 99, 235, 0.1)' }}
+        />
+        <Skeleton 
+          variant="text" 
+          width={isMobile ? 200 : 300} 
+          height={isMobile ? 32 : 40}
+          sx={{ backgroundColor: 'rgba(37, 99, 235, 0.1)' }}
+        />
+      </Box>
 
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          p: { xs: 2, md: 4 },
-          maxWidth: 1600,
-          margin: "0 auto",
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-          <Box 
-            sx={backButtonStyle}
+      {/* Cards Skeleton */}
+      <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+        {Array.from({ length: isMobile ? 2 : 6 }).map((_, index) => (
+          <Grid item xs={12} sm={6} md={4} lg={4} xl={3} key={index}>
+            <Zoom in timeout={300 + index * 100}>
+              <Card sx={{ 
+                borderRadius: theme.borderRadius.xl,
+                overflow: 'hidden',
+                height: isMobile ? 380 : 420,
+                background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+              }}>
+                <Skeleton 
+                  variant="rectangular" 
+                  height={isMobile ? 160 : 200}
+                  sx={{ backgroundColor: 'rgba(37, 99, 235, 0.08)' }}
+                />
+                <CardContent sx={{ p: 3 }}>
+                  <Skeleton variant="text" width="90%" height={32} sx={{ mb: 1.5, backgroundColor: 'rgba(37, 99, 235, 0.08)' }} />
+                  <Skeleton variant="text" width="70%" height={24} sx={{ mb: 2, backgroundColor: 'rgba(37, 99, 235, 0.08)' }} />
+                  
+                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                    <Skeleton variant="rectangular" width={80} height={32} sx={{ borderRadius: 2, backgroundColor: 'rgba(37, 99, 235, 0.08)' }} />
+                    <Skeleton variant="rectangular" width={90} height={32} sx={{ borderRadius: 2, backgroundColor: 'rgba(37, 99, 235, 0.08)' }} />
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+                    <Skeleton variant="text" width={80} height={32} sx={{ backgroundColor: 'rgba(37, 99, 235, 0.08)' }} />
+                    <Skeleton variant="rectangular" width={100} height={28} sx={{ borderRadius: 2, backgroundColor: 'rgba(37, 99, 235, 0.08)' }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Zoom>
+          </Grid>
+        ))}
+      </Grid>
+    </StyledContainer>
+  );
+
+  const EmptyState = () => (
+    <Fade in timeout={800}>
+      <Box sx={{ 
+        display: "flex", 
+        flexDirection: "column", 
+        alignItems: "center", 
+        justifyContent: "center", 
+        minHeight: '60vh',
+        textAlign: "center",
+        px: 2,
+        py: 4,
+      }}>
+        <Box sx={{
+          background: `linear-gradient(135deg, ${theme.colors.primary}15 0%, ${theme.colors.primaryLight}10 100%)`,
+          borderRadius: '50%',
+          p: 3,
+          mb: 3,
+        }}>
+          <SchoolIcon sx={{ 
+            fontSize: isMobile ? 64 : 80, 
+            color: theme.colors.primary,
+          }} />
+        </Box>
+        <Typography 
+          variant={isMobile ? "h5" : "h4"} 
+          sx={{ 
+            mb: 2, 
+            fontWeight: 700,
+            background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.primaryLight} 100%)`,
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          Start Your Learning Journey
+        </Typography>
+        <Typography 
+          variant="body1" 
+          color="text.secondary" 
+          sx={{ 
+            maxWidth: 500,
+            fontSize: isMobile ? '1rem' : '1.125rem',
+            lineHeight: 1.6,
+          }}
+        >
+          Discover amazing courses and unlock your potential. Your purchased courses will appear here once you make your first enrollment.
+        </Typography>
+      </Box>
+    </Fade>
+  );
+
+  if (loading) return <LoadingSkeleton />;
+
+  return (
+    <StyledContainer maxWidth="xl">
+      {/* Enhanced Header */}
+      <Fade in timeout={500}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: { xs: 2, md: 3 }, 
+          mb: { xs: 3, md: 5 },
+          flexWrap: 'wrap',
+        }}>
+          <BackButton 
+            ismobile={isMobile.toString()}
             onClick={() => window.history.back()}
             aria-label="Go back"
           >
             <FiArrowLeft size={isMobile ? 20 : 24} />
+          </BackButton>
+          
+          <Box sx={{ flex: 1 }}>
+            <Typography 
+              variant={isMobile ? "h4" : "h3"} 
+              sx={{ 
+                fontWeight: 800,
+                background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.primaryLight} 100%)`,
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                letterSpacing: '-0.025em',
+                mb: 0.5,
+              }}
+            >
+              My Learning
+            </Typography>
+            <Typography 
+              variant="body1" 
+              color="text.secondary"
+              sx={{ 
+                fontSize: isMobile ? '0.95rem' : '1.125rem',
+                fontWeight: 500,
+              }}
+            >
+              Continue your educational journey
+            </Typography>
           </Box>
-          <Skeleton variant="text" width={150} height={40} />
+          
+          {!isMobile && courses.length > 0 && (
+            <GradientChip 
+              label={`${courses.length} Course${courses.length !== 1 ? 's' : ''}`}
+              icon={<FiBook size={16} />}
+            />
+          )}
         </Box>
+      </Fade>
 
-        <Grid container spacing={4}>
-          {Array.from({ length: isMobile ? 2 : 4 }).map((_, index) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
-              <Card sx={{ 
-                borderRadius: 3, 
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                height: "100%",
-                display: "flex",
-                flexDirection: "column"
-              }}>
-                <Skeleton 
-                  variant="rectangular" 
-                  height={200} 
-                  sx={{ borderTopLeftRadius: 12, borderTopRightRadius: 12 }} 
-                />
-                <CardContent sx={{ p: 3, flexGrow: 1 }}>
-                  <Skeleton variant="text" width="80%" height={32} sx={{ mb: 1.5 }} />
-                  <Skeleton variant="text" width="60%" height={24} sx={{ mb: 2 }} />
-                  
-                  <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <Skeleton variant="circular" width={20} height={20} sx={{ mr: 1 }} />
-                      <Skeleton variant="text" width={30} height={20} />
-                    </Box>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <Skeleton variant="circular" width={20} height={20} sx={{ mr: 1 }} />
-                      <Skeleton variant="text" width={50} height={20} />
-                    </Box>
-                  </Box>
-                  
-                  <Box sx={{ display: "flex", justifyContent: "space-between", mt: "auto" }}>
-                    <Skeleton variant="text" width={70} height={28} />
-                    <Skeleton variant="text" width={90} height={28} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-    );
-  }
+      {/* Course Progress Bar for Mobile */}
+      {isMobile && courses.length > 0 && (
+        <Fade in timeout={600}>
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                Learning Progress
+              </Typography>
+              <GradientChip 
+                label={`${courses.length} Courses`}
+                size="small"
+              />
+            </Box>
+            <LinearProgress 
+              variant="determinate" 
+              value={75} 
+              sx={{ 
+                height: 8, 
+                borderRadius: 4,
+                backgroundColor: theme.colors.background.tertiary,
+                '& .MuiLinearProgress-bar': {
+                  background: `linear-gradient(90deg, ${theme.colors.primary} 0%, ${theme.colors.primaryLight} 100%)`,
+                  borderRadius: 4,
+                }
+              }} 
+            />
+          </Box>
+        </Fade>
+      )}
 
-  return (
-    <Box
-      sx={{
-        p: { xs: 2, md: 4 },
-        maxWidth: 1600,
-        margin: "0 auto",
-        minHeight: "100vh",
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-        <Box 
-          sx={backButtonStyle}
-          onClick={() => window.history.back()}
-          aria-label="Go back"
-        >
-          <FiArrowLeft size={isMobile ? 20 : 24} />
-        </Box>
-        <Typography variant="h4" sx={{ fontWeight: 600, color: "text.primary" }}>
-            My Learning
-        </Typography>
-      </Box>
-
+      {/* Course Grid */}
       {courses.length === 0 ? (
-        <Box sx={{ 
-          display: "flex", 
-          flexDirection: "column", 
-          alignItems: "center", 
-          justifyContent: "center", 
-          height: "60vh", 
-          textAlign: "center",
-          px: 2
-        }}>
-          <CheckCircleIcon sx={{ fontSize: 80, color: "primary.main", mb: 2 }} />
-          <Typography variant="h5" sx={{ mb: 1, fontSize: isMobile ? '1.5rem' : '2rem' }}>
-            No courses purchased yet
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500 }}>
-            Explore our catalog and find your next learning journey!
-          </Typography>
-        </Box>
+        <EmptyState />
       ) : (
-        <Grid container spacing={4}>
-          {courses.map((course) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={course.courseId}>
-              <Card 
-                component={Link} 
-                href={`/course/${course.courseId}`} 
-                sx={{ 
-                  textDecoration: "none", 
-                  color: "inherit", 
-                  borderRadius: 3, 
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)", 
-                  transition: "transform 0.3s ease, box-shadow 0.3s ease", 
-                  "&:hover": { 
-                    transform: "translateY(-5px)", 
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)" 
-                  }, 
-                  height: "100%", 
-                  display: "flex", 
-                  flexDirection: "column" 
-                }}
-              >
-                <Box sx={{ position: "relative", width: "100%" }}>
-                  <CardMedia 
-                    component="img" 
-                    height="200" 
-                    image={course.thumbnail || "https://via.placeholder.com/400x200"} 
-                    alt={course.coursename} 
-                    sx={{ 
-                      width: "100%", 
-                      objectFit: "cover", 
-                      borderTopLeftRadius: 12,
-                      borderTopRightRadius: 12
-                    }} 
-                  />
-                  <Chip 
-                    label={course.level.toUpperCase()} 
-                    size="small" 
-                    sx={{ 
-                      position: "absolute", 
-                      top: 12, 
-                      left: 12, 
-                      backgroundColor: "primary.main", 
-                      color: "white", 
-                      fontWeight: 600, 
-                      fontSize: "0.7rem", 
-                      px: 1.5, 
-                      py: 0.5 
-                    }} 
-                  />
-                </Box>
-                <CardContent sx={{ p: 3, flexGrow: 1 }}>
-                  <Typography 
-                    variant="h6" 
-                    sx={{ 
-                      fontWeight: 600, 
-                      mb: 1.5, 
-                      display: "-webkit-box", 
-                      WebkitLineClamp: 2, 
-                      WebkitBoxOrient: "vertical", 
-                      overflow: "hidden", 
-                      minHeight: 64 
-                    }}
-                  >
-                    {course.coursename}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    By {course.instructor?.name || "Unknown Instructor"}
-                  </Typography>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <StarIcon sx={{ fontSize: 18, color: "#f8b400", mr: 0.5 }}/>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>4.5</Typography>
+        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+          {courses.map((course, index) => (
+            <Grid item xs={12} sm={6} md={4} lg={4} xl={3} key={course.courseId}>
+              <Zoom in timeout={300 + index * 100}>
+                <ModernCard 
+                  component={Link} 
+                  href={`/course/${course.courseId}`}
+                  ismobile={isMobile.toString()}
+                  sx={{ textDecoration: "none", color: "inherit" }}
+                >
+                  <Box sx={{ position: "relative" }}>
+                    <CardMedia 
+                      component="img" 
+                      height={isMobile ? 160 : 200}
+                      image={course.thumbnail || "https://via.placeholder.com/400x200?text=Course+Thumbnail"} 
+                      alt={course.coursename}
+                      sx={{ 
+                        objectFit: "cover",
+                        transition: 'transform 0.4s ease',
+                        '&:hover': {
+                          transform: 'scale(1.05)',
+                        }
+                      }} 
+                    />
+                    
+                    {/* Course Level Badge */}
+                    <GradientChip 
+                      label={course.level?.toUpperCase() || 'INTERMEDIATE'} 
+                      size="small"
+                      sx={{ 
+                        position: "absolute", 
+                        top: 12, 
+                        left: 12,
+                        fontSize: '0.75rem',
+                      }} 
+                    />
+                    
+                    {/* Play Button Overlay */}
+                    <Box sx={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      opacity: 0,
+                      transition: 'opacity 0.3s ease',
+                      '.MuiPaper-root:hover &': {
+                        opacity: 1,
+                      }
+                    }}>
+                      <IconButton sx={{
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(10px)',
+                        color: theme.colors.primary,
+                        '&:hover': {
+                          background: 'rgba(255, 255, 255, 1)',
+                          transform: 'scale(1.1)',
+                        }
+                      }}>
+                        <PlayArrowIcon />
+                      </IconButton>
                     </Box>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <AccessTimeIcon sx={{ fontSize: 18, color: "text.secondary", mr: 0.5 }}/>
-                      <Typography variant="body2" color="text.secondary">
-                        {`${course.contentduration?.hours || 0}h ${course.contentduration?.minutes || 0}m`}
+                  </Box>
+                  
+                  <CardContent sx={{ 
+                    p: { xs: 2.5, md: 3 }, 
+                    flexGrow: 1, 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    gap: 1.5,
+                  }}>
+                    {/* Course Title */}
+                    <Typography 
+                      variant={isMobile ? "h6" : "h5"}
+                      sx={{ 
+                        fontWeight: 700, 
+                        display: "-webkit-box", 
+                        WebkitLineClamp: 2, 
+                        WebkitBoxOrient: "vertical", 
+                        overflow: "hidden",
+                        color: theme.colors.text.primary,
+                        fontSize: isMobile ? '1.1rem' : '1.25rem',
+                        lineHeight: 1.3,
+                        minHeight: isMobile ? 56 : 64,
+                      }}
+                    >
+                      {course.coursename}
+                    </Typography>
+                    
+                    {/* Instructor */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Avatar sx={{ width: 24, height: 24, bgcolor: theme.colors.primary }}>
+                        <PersonIcon sx={{ fontSize: 14 }} />
+                      </Avatar>
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary"
+                        sx={{ 
+                          fontSize: isMobile ? '0.875rem' : '0.95rem',
+                          fontWeight: 500,
+                        }}
+                      >
+                        {course.instructor?.name || "Expert Instructor"}
                       </Typography>
                     </Box>
-                  </Box>
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: "auto" }}>
-                    <Typography variant="h6" sx={{ color: "primary.main", fontWeight: 700 }}>
-                      ₹{course.price?.finalPrice || "0"}
-                    </Typography>
-                    <Chip 
-                      label="Purchased" 
-                      size="small" 
-                      sx={{ 
-                        backgroundColor: "success.light", 
-                        color: "success.dark", 
-                        fontWeight: 600 
-                      }}
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
+                    
+                    {/* Stats Row */}
+                    <Box sx={{ 
+                      display: "flex", 
+                      gap: 1.5,
+                      flexWrap: 'wrap',
+                    }}>
+                      <StatsBox>
+                        <FiStar size={14} color={theme.colors.secondary} />
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                          4.5
+                        </Typography>
+                      </StatsBox>
+                      
+                      <StatsBox>
+                        <FiClock size={14} color={theme.colors.text.muted} />
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                          {`${course.contentduration?.hours || 0}h ${course.contentduration?.minutes || 0}m`}
+                        </Typography>
+                      </StatsBox>
+                      
+                      <StatsBox>
+                        <FiUsers size={14} color={theme.colors.accent} />
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                          1.2k
+                        </Typography>
+                      </StatsBox>
+                    </Box>
+                    
+                    {/* Price and Status */}
+                    <Box sx={{ 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "space-between", 
+                      mt: "auto",
+                      pt: 1,
+                    }}>
+                      <Typography 
+                        variant={isMobile ? "h6" : "h5"} 
+                        sx={{ 
+                          background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.primaryLight} 100%)`,
+                          backgroundClip: 'text',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          fontWeight: 800,
+                          fontSize: isMobile ? '1.25rem' : '1.375rem',
+                        }}
+                      >
+                        ₹{course.price?.finalPrice || "0"}
+                      </Typography>
+                      
+                      <GradientChip 
+                        label="Purchased" 
+                        size="small"
+                        bgcolor="linear-gradient(135deg, #059669 0%, #10b981 100%)"
+                        sx={{
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                        }}
+                      />
+                    </Box>
+                  </CardContent>
+                </ModernCard>
+              </Zoom>
             </Grid>
           ))}
         </Grid>
       )}
-    </Box>
+    </StyledContainer>
   );
 };
 

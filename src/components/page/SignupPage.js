@@ -96,12 +96,34 @@ const SignupPage = () => {
   };
 
 
+  const handleResendOtp = async (userIdentifier) => {
+    try {
+      console.log('Resending OTP for:', userIdentifier);
+      const response = await authService.resendOtp(userIdentifier);
+      
+      if (response.data.success) {
+        showToastSuccess(response.data.message || 'New OTP sent successfully!');
+      } else {
+        throw new Error(response.data.message || 'Failed to resend OTP');
+      }
+    } catch (error) {
+      console.error('Resend OTP Error:', error);
+      showToastError(error.response?.data?.message || error.message || 'Failed to resend OTP. Please try again.');
+      throw error; // Re-throw to let the component handle it
+    }
+  };
+
   const getStepContent = (step) => {
     switch (step) {
       case 0:
         return <RegisterForm onRegisterSuccess={handleRegister} onError={showToastError} />;
       case 1:
-        return <VerifyOtpForm userIdentifier={userIdentifier} onOtpVerified={handleVerifyOtp} onError={showToastError} />;
+        return <VerifyOtpForm 
+          userIdentifier={userIdentifier} 
+          onOtpVerified={handleVerifyOtp} 
+          onError={showToastError}
+          onResendOtp={handleResendOtp}
+        />;
       case 2:
         return <CreatePasswordForm userIdentifier={userIdentifier} onPasswordCreated={handleCreatePassword} onError={showToastError}/>;
       case 3:

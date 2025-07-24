@@ -1,20 +1,26 @@
 import React from 'react';
-import { Container, Box, Paper, Typography } from '@mui/material';
-// import logo from '../../assets/logo.png'; // Example logo
+import { Container, Box, useTheme, useMediaQuery } from '@mui/material';
 
 const AuthLayout = ({ children, title }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   return (
-    <Container component="main" maxWidth="xs" sx={{ mt: 8 }}>
-      <Paper elevation={6} sx={{ padding: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {/* <img src={logo} alt="Logo" style={{ width: '80px', marginBottom: '16px' }} /> */}
-        <Typography component="h1" variant="h5" sx={{ mb: 2 }}>
-          {title}
-        </Typography>
-        <Box sx={{ width: '100%' }}>
-          {children}
-        </Box>
-      </Paper>
-    </Container>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: isMobile 
+          ? '#f5f5f5'
+          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        py: { xs: 2, sm: 4 }
+      }}
+    >
+      {children}
+    </Box>
   );
 };
 
